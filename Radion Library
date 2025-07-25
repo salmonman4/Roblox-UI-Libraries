@@ -69,7 +69,7 @@ end
 
 local requestsDisabled = true -- getgenv and getgenv().DISABLE_RADION_REQUESTS
 local InterfaceBuild = 'RDN-V2'
-local Release = "v2.0"
+local Release = "v2.0.1" -- Patched version
 local RadionFolder = "Radion"
 local ConfigurationFolder = RadionFolder.."/Configurations"
 local ConfigurationExtension = ".radn"
@@ -402,14 +402,15 @@ local globalLoaded
 local radionDestroyed = false
 
 repeat
-	if Radion:FindFirstChild('Build') and Radion.Build.Value == InterfaceBuild then
+	local buildValue = Radion:FindFirstChild('Build') and Radion.Build.Value or 'No Build'
+	if buildValue == InterfaceBuild then
 		correctBuild = true
 		break
 	end
 	correctBuild = false
 	if not warned then
 		warn('Radion | Build Mismatch')
-		print('Radion may encounter issues as you are running an incompatible interface version ('.. ((Radion:FindFirstChild('Build') and Radion.Build.Value) or 'No Build') ..').\n\nThis version of Radion is intended for interface build '..InterfaceBuild..'.')
+		print(`Radion may encounter issues as you are running an incompatible interface version ({buildValue}).\n\nThis version of Radion is intended for interface build {InterfaceBuild}.`)
 		warned = true
 	end
 	local toDestroy = Radion
@@ -456,7 +457,7 @@ local dragBarCosmetic = dragBar and dragBar.Drag or nil
 -- Apply curvier aesthetic to base UI components
 Main:WaitForChild("UICorner").CornerRadius = UDim.new(0, 16)
 Topbar:WaitForChild("UICorner").CornerRadius = UDim.new(0, 16)
-Topbar.UICorner.Parent.CornerRepair.Visible = false -- Disable corner repair for fully rounded topbar
+if Topbar:FindFirstChild("CornerRepair") then Topbar.CornerRepair.Visible = false end -- Disable corner repair for fully rounded topbar
 Main.Search:WaitForChild("UICorner").CornerRadius = UDim.new(0, 20)
 if MPrompt then MPrompt:WaitForChild("UICorner").CornerRadius = UDim.new(0, 12) end
 
@@ -551,7 +552,7 @@ local function getAssetUri(id: any): string
 	if type(id) == "number" then
 		assetUri = "rbxassetid://" .. id
 	elseif type(id) == "string" and not Icons then
-		warn("Radion | Cannot use Lucide icons as icons library is not loaded")
+		warn("Radion | Cannot use Lucide icons as library is not loaded")
 	else
 		warn("Radion | The icon argument must be an icon ID (number) or a Lucide icon name (string)")
 	end
@@ -603,7 +604,6 @@ local function makeDraggable(object, dragObject, enableTaptic, tapticOffset)
 	local renderStepped = RunService.RenderStepped:Connect(function()
 		if dragging and not Hidden then
 			local position = UserInputService:GetMouseLocation() + relative + offset
-			local tapticOn = enableTaptic and tapticOffset
 			local tweenInfo = TweenInfo.new(0.2, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
 			TweenService:Create(object, tweenInfo, {Position = UDim2.fromOffset(position.X, position.Y)}):Play()
 			if dragBar and tapticOffset then
@@ -732,10 +732,8 @@ end
 
 local function openSearch()
 	searchOpen = true
-	Main.Search:ClearAllChildren()
-	Main.Search.Parent.LayoutOrder = 100 -- Bring to front
-	Main.Search.Input.Interactable = true
 	Main.Search.Visible = true
+	Main.Search.Input.Interactable = true
 	Main.Search.Input:CaptureFocus()
 
 	TweenService:Create(Main.Search, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Size = UDim2.new(1, -35, 0, 42), Position = UDim2.new(0.5, 0, 0, 52), BackgroundTransparency = 0}):Play()
@@ -962,7 +960,9 @@ function RadionLib:CreateWindow(Settings)
 
 	if not requestsDisabled then sendReport("window_created", Settings.Name or "Unknown") end
 
-	Topbar.Title.Text = Settings.Name
+    -- FIX: Added a fallback to prevent the "string expected, got nil" error.
+	Topbar.Title.Text = Settings.Name or "Radion"
+	
 	Main.Size = UDim2.new(0, 420, 0, 100)
 	Main.Visible = true
 	Main.BackgroundTransparency = 1
@@ -1006,9 +1006,9 @@ function RadionLib:CreateWindow(Settings)
 	end
 
 	pcall(function()
-		CEnabled = Settings.ConfigurationSaving.Enabled or false
-		CFileName = Settings.ConfigurationSaving.FileName or tostring(game.PlaceId)
-		ConfigurationFolder = Settings.ConfigurationSaving.FolderName or ConfigurationFolder
+		CEnabled = Settings.ConfigurationSaving and Settings.ConfigurationSaving.Enabled or false
+		CFileName = Settings.ConfigurationSaving and Settings.ConfigurationSaving.FileName or tostring(game.PlaceId)
+		ConfigurationFolder = Settings.ConfigurationSaving and Settings.ConfigurationSaving.FolderName or ConfigurationFolder
 		if CEnabled and isfolder and not isfolder(ConfigurationFolder) then makefolder(ConfigurationFolder) end
 	end)
 
@@ -1041,11 +1041,10 @@ function RadionLib:CreateWindow(Settings)
 	local FirstTab = false
 	local Window = {}
 	
-	--[[
-		Creates a new tab.
-		@param Name The title of the tab.
-		@param Icon An optional Lucide icon name (e.g., 'home', 'settings') or a Roblox asset ID.
-	]]
+	--- Creates a new tab.
+	-- @param Name The title of the tab.
+	-- @param Icon (optional) A Lucide icon name (e.g., 'home') or a Roblox asset ID.
+	-- @param Ext (internal) Marks the tab as an extension tab (e.g., Settings).
 	function Window:CreateTab(Name, Icon, Ext)
 		local TabButton = TabList.Template:Clone()
 		TabButton.Name = Name
@@ -1072,6 +1071,7 @@ function RadionLib:CreateWindow(Settings)
 		local TabPage = Elements.Template:Clone()
 		TabPage.Name, TabPage.Visible, TabPage.Parent = Name, true, Elements
 		TabPage.LayoutOrder = Ext and 10000 or #Elements:GetChildren()
+		for _, child in ipairs(TabPage:GetChildren()) do if child.Name ~= "UIGridLayout" then child:Destroy() end end
 
 		if not FirstTab and not Ext then
 			Elements.UIPageLayout.Animated = false
@@ -1100,7 +1100,8 @@ function RadionLib:CreateWindow(Settings)
 			Elements.UIPageLayout:JumpTo(TabPage)
 			for _, OtherTabButton in ipairs(TabList:GetChildren()) do
 				if OtherTabButton.Name ~= "Template" and OtherTabButton:IsA("Frame") and OtherTabButton.Name ~= "Placeholder" then
-					OtherTabButton:FindFirstChild("UpdateAppearance")(OtherTabButton.Name == TabPage.Name)
+					local updateFunc = OtherTabButton:FindFirstChild("UpdateAppearance")
+					if updateFunc then updateFunc.Event:Fire(OtherTabButton.Name == TabPage.Name) end
 				end
 			end
 		end)
@@ -1110,6 +1111,7 @@ function RadionLib:CreateWindow(Settings)
 		updateEvent.Event:Connect(updateTabAppearance)
 
 		Radion.Main:GetPropertyChangedSignal('BackgroundColor3'):Connect(function()
+			task.wait() -- Allow theme values to update
 			updateTabAppearance(Elements.UIPageLayout.CurrentPage == TabPage)
 		end)
 		
@@ -1138,10 +1140,11 @@ function RadionLib:CreateWindow(Settings)
 			TweenService:Create(element.UIStroke, tweenInfo, {Transparency = 0}):Play()
 			TweenService:Create(element.Title, tweenInfo, {TextTransparency = 0}):Play()
 			
-			element.MouseEnter:Connect(function() TweenService:Create(element, tweenInfo, {BackgroundColor3 = SelectedTheme.ElementBackgroundHover}):Play() end)
-			element.MouseLeave:Connect(function() TweenService:Create(element, tweenInfo, {BackgroundColor3 = SelectedTheme.ElementBackground}):Play() end)
+			element.MouseEnter:Connect(function() TweenService:Create(element, TweenInfo.new(0.2), {BackgroundColor3 = SelectedTheme.ElementBackgroundHover}):Play() end)
+			element.MouseLeave:Connect(function() TweenService:Create(element, TweenInfo.new(0.2), {BackgroundColor3 = SelectedTheme.ElementBackground}):Play() end)
 			
 			Radion.Main:GetPropertyChangedSignal('BackgroundColor3'):Connect(function()
+				task.wait()
 				element.BackgroundColor3 = SelectedTheme.ElementBackground
 				element.UIStroke.Color = SelectedTheme.ElementStroke
 			end)
@@ -1158,8 +1161,10 @@ function RadionLib:CreateWindow(Settings)
 				if not settings.Ext then SaveConfiguration() end
 				
 				local anim = Instance.new("Frame", button)
+				anim:SetAttribute("Style", "ClickEffect") -- For easier identification
+				local corner = Instance.new("UICorner", anim)
+				corner.CornerRadius = UDim.new(0, 8)
 				anim.BackgroundColor3 = SelectedTheme.ElementBackgroundHover
-				anim:WaitForChild("UICorner").CornerRadius = UDim.new(0, 8)
 				anim.Size = UDim2.fromScale(0, 1)
 				anim.Position = UDim2.fromScale(0.5, 0.5)
 				anim.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -1262,7 +1267,7 @@ local hideHotkeyConnection
 function RadionLib:Destroy()
 	radionDestroyed = true
 	if hideHotkeyConnection then hideHotkeyConnection:Disconnect() end
-	if Radion then Radion:Destroy() end
+	if Radion and Radion.Parent then Radion:Destroy() end
 end
 
 Topbar.ChangeSize.MouseButton1Click:Connect(function()
@@ -1296,8 +1301,9 @@ if Topbar:FindFirstChild('Settings') then
 		if settingsTab and Elements.UIPageLayout.CurrentPage ~= settingsTab then
 			Elements.UIPageLayout:JumpTo(settingsTab)
 			for _, OtherTabButton in ipairs(TabList:GetChildren()) do
-				if OtherTabButton.Name ~= "Template" and OtherTabButton:IsA("Frame") then
-					OtherTabButton:FindFirstChild("UpdateAppearance")(OtherTabButton.Name == "Settings")
+				if OtherTabButton.Name ~= "Template" and OtherTabButton:IsA("Frame") and OtherTabButton.Name ~= "Placeholder" then
+					local updateFunc = OtherTabButton:FindFirstChild("UpdateAppearance")
+					if updateFunc then updateFunc.Event:Fire(OtherTabButton.Name == "Settings") end
 				end
 			end
 		end
