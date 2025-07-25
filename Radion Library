@@ -1,0 +1,1241 @@
+--[[
+    Radion Interface Suite
+    Professional & Minimalistic UI Library
+    
+    Features:
+    - Clean, modern design with smooth animations
+    - Function-based configuration system
+    - Highly customizable components
+    - Simplified API for ease of use
+    - Professional color schemes
+]]
+
+local RadionLibrary = {}
+RadionLibrary.Flags = {}
+
+-- Services
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local HttpService = game:GetService("HttpService")
+local Players = game:GetService("Players")
+local CoreGui = game:GetService("CoreGui")
+
+-- Animation Constants
+local ANIMATION_TIME = 0.3
+local HOVER_TIME = 0.2
+local SMOOTH_EASING = Enum.EasingStyle.Quart
+local BOUNCE_EASING = Enum.EasingStyle.Back
+
+-- Professional Theme System
+RadionLibrary.Themes = {
+    Professional = {
+        Primary = Color3.fromRGB(15, 15, 18),
+        Secondary = Color3.fromRGB(22, 22, 26),
+        Accent = Color3.fromRGB(79, 172, 254),
+        Text = Color3.fromRGB(245, 245, 245),
+        TextSecondary = Color3.fromRGB(180, 180, 185),
+        Border = Color3.fromRGB(45, 45, 50),
+        Hover = Color3.fromRGB(35, 35, 40),
+        Success = Color3.fromRGB(34, 197, 94),
+        Warning = Color3.fromRGB(251, 191, 36),
+        Error = Color3.fromRGB(239, 68, 68)
+    },
+    
+    Minimal = {
+        Primary = Color3.fromRGB(250, 250, 250),
+        Secondary = Color3.fromRGB(245, 245, 245),
+        Accent = Color3.fromRGB(59, 130, 246),
+        Text = Color3.fromRGB(15, 15, 15),
+        TextSecondary = Color3.fromRGB(75, 75, 85),
+        Border = Color3.fromRGB(225, 225, 235),
+        Hover = Color3.fromRGB(240, 240, 245),
+        Success = Color3.fromRGB(34, 197, 94),
+        Warning = Color3.fromRGB(251, 191, 36),
+        Error = Color3.fromRGB(239, 68, 68)
+    },
+    
+    Ocean = {
+        Primary = Color3.fromRGB(12, 20, 31),
+        Secondary = Color3.fromRGB(18, 28, 42),
+        Accent = Color3.fromRGB(14, 165, 233),
+        Text = Color3.fromRGB(241, 245, 249),
+        TextSecondary = Color3.fromRGB(148, 163, 184),
+        Border = Color3.fromRGB(30, 41, 59),
+        Hover = Color3.fromRGB(24, 35, 51),
+        Success = Color3.fromRGB(6, 182, 212),
+        Warning = Color3.fromRGB(245, 158, 11),
+        Error = Color3.fromRGB(239, 68, 68)
+    }
+}
+
+-- Current theme
+local currentTheme = RadionLibrary.Themes.Professional
+
+-- Utility Functions
+local function animate(object, properties, duration, style)
+    duration = duration or ANIMATION_TIME
+    style = style or SMOOTH_EASING
+    
+    local tween = TweenService:Create(object, TweenInfo.new(duration, style), properties)
+    tween:Play()
+    return tween
+end
+
+local function createCorner(radius)
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, radius or 8)
+    return corner
+end
+
+local function createStroke(color, thickness)
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = color or currentTheme.Border
+    stroke.Thickness = thickness or 1
+    stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    return stroke
+end
+
+local function createPadding(padding)
+    local pad = Instance.new("UIPadding")
+    local p = padding or 12
+    pad.PaddingTop = UDim.new(0, p)
+    pad.PaddingBottom = UDim.new(0, p)
+    pad.PaddingLeft = UDim.new(0, p)
+    pad.PaddingRight = UDim.new(0, p)
+    return pad
+end
+
+-- Animation System
+local AnimationSystem = {}
+
+function AnimationSystem.fadeIn(object, duration)
+    object.Visible = true
+    object.BackgroundTransparency = 1
+    animate(object, {BackgroundTransparency = 0}, duration)
+    
+    for _, child in pairs(object:GetDescendants()) do
+        if child:IsA("TextLabel") or child:IsA("TextButton") then
+            child.TextTransparency = 1
+            animate(child, {TextTransparency = 0}, duration)
+        elseif child:IsA("ImageLabel") or child:IsA("ImageButton") then
+            child.ImageTransparency = 1
+            animate(child, {ImageTransparency = 0}, duration)
+        end
+    end
+end
+
+function AnimationSystem.fadeOut(object, duration, callback)
+    animate(object, {BackgroundTransparency = 1}, duration)
+    
+    for _, child in pairs(object:GetDescendants()) do
+        if child:IsA("TextLabel") or child:IsA("TextButton") then
+            animate(child, {TextTransparency = 1}, duration)
+        elseif child:IsA("ImageLabel") or child:IsA("ImageButton") then
+            animate(child, {ImageTransparency = 1}, duration)
+        end
+    end
+    
+    if callback then
+        task.wait(duration)
+        callback()
+    end
+end
+
+function AnimationSystem.hover(object, hoverColor, normalColor)
+    object.MouseEnter:Connect(function()
+        animate(object, {BackgroundColor3 = hoverColor}, HOVER_TIME)
+    end)
+    
+    object.MouseLeave:Connect(function()
+        animate(object, {BackgroundColor3 = normalColor}, HOVER_TIME)
+    end)
+end
+
+function AnimationSystem.ripple(object, callback)
+    object.MouseButton1Click:Connect(function()
+        local ripple = Instance.new("Frame")
+        ripple.Size = UDim2.new(0, 0, 0, 0)
+        ripple.Position = UDim2.new(0.5, 0, 0.5, 0)
+        ripple.AnchorPoint = Vector2.new(0.5, 0.5)
+        ripple.BackgroundColor3 = currentTheme.Accent
+        ripple.BackgroundTransparency = 0.8
+        ripple.BorderSizePixel = 0
+        ripple.Parent = object
+        
+        local corner = createCorner(999)
+        corner.Parent = ripple
+        
+        animate(ripple, {
+            Size = UDim2.new(1, 50, 1, 50),
+            BackgroundTransparency = 1
+        }, 0.5, Enum.EasingStyle.Circular)
+        
+        task.spawn(function()
+            task.wait(0.5)
+            ripple:Destroy()
+        end)
+        
+        if callback then callback() end
+    end)
+end
+
+-- Component Factory
+local ComponentFactory = {}
+
+function ComponentFactory.createBaseElement(name, size)
+    local element = Instance.new("Frame")
+    element.Name = name
+    element.Size = size or UDim2.new(1, 0, 0, 50)
+    element.BackgroundColor3 = currentTheme.Secondary
+    element.BorderSizePixel = 0
+    
+    local corner = createCorner(8)
+    corner.Parent = element
+    
+    local stroke = createStroke()
+    stroke.Parent = element
+    
+    return element
+end
+
+function ComponentFactory.createButton(config)
+    local button = Instance.new("TextButton")
+    button.Name = config.Name or "Button"
+    button.Size = config.Size or UDim2.new(1, 0, 0, 40)
+    button.BackgroundColor3 = config.Color or currentTheme.Accent
+    button.BorderSizePixel = 0
+    button.Text = config.Text or "Button"
+    button.TextColor3 = Color3.fromRGB(255, 255, 255)
+    button.TextSize = config.TextSize or 14
+    button.Font = Enum.Font.GothamMedium
+    button.AutoButtonColor = false
+    
+    local corner = createCorner(config.CornerRadius or 6)
+    corner.Parent = button
+    
+    -- Enhanced animations
+    AnimationSystem.hover(button, 
+        Color3.new(
+            math.min(1, button.BackgroundColor3.R + 0.1),
+            math.min(1, button.BackgroundColor3.G + 0.1),
+            math.min(1, button.BackgroundColor3.B + 0.1)
+        ),
+        button.BackgroundColor3
+    )
+    
+    if config.Ripple ~= false then
+        AnimationSystem.ripple(button, config.Callback)
+    else
+        button.MouseButton1Click:Connect(config.Callback or function() end)
+    end
+    
+    -- Return button with utility functions
+    return {
+        Element = button,
+        SetText = function(text)
+            button.Text = text
+        end,
+        SetColor = function(color)
+            button.BackgroundColor3 = color
+        end,
+        SetEnabled = function(enabled)
+            button.Interactable = enabled
+            animate(button, {BackgroundTransparency = enabled and 0 or 0.5}, HOVER_TIME)
+        end,
+        Destroy = function()
+            button:Destroy()
+        end
+    }
+end
+
+function ComponentFactory.createToggle(config)
+    local container = ComponentFactory.createBaseElement(config.Name or "Toggle", UDim2.new(1, 0, 0, 50))
+    container.BackgroundTransparency = 1
+    
+    local padding = createPadding(16)
+    padding.Parent = container
+    
+    local label = Instance.new("TextLabel")
+    label.Name = "Label"
+    label.Size = UDim2.new(1, -60, 1, 0)
+    label.Position = UDim2.new(0, 0, 0, 0)
+    label.BackgroundTransparency = 1
+    label.Text = config.Text or "Toggle"
+    label.TextColor3 = currentTheme.Text
+    label.TextSize = 14
+    label.Font = Enum.Font.Gotham
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Parent = container
+    
+    local toggleFrame = Instance.new("Frame")
+    toggleFrame.Name = "Toggle"
+    toggleFrame.Size = UDim2.new(0, 50, 0, 26)
+    toggleFrame.Position = UDim2.new(1, -50, 0.5, -13)
+    toggleFrame.BackgroundColor3 = currentTheme.Border
+    toggleFrame.BorderSizePixel = 0
+    toggleFrame.Parent = container
+    
+    local toggleCorner = createCorner(13)
+    toggleCorner.Parent = toggleFrame
+    
+    local knob = Instance.new("Frame")
+    knob.Name = "Knob"
+    knob.Size = UDim2.new(0, 20, 0, 20)
+    knob.Position = UDim2.new(0, 3, 0.5, -10)
+    knob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    knob.BorderSizePixel = 0
+    knob.Parent = toggleFrame
+    
+    local knobCorner = createCorner(10)
+    knobCorner.Parent = knob
+    
+    local button = Instance.new("TextButton")
+    button.Size = UDim2.new(1, 0, 1, 0)
+    button.BackgroundTransparency = 1
+    button.Text = ""
+    button.Parent = container
+    
+    local isToggled = config.Default or false
+    
+    local function updateToggle(value, animate_transition)
+        isToggled = value
+        
+        if animate_transition then
+            if isToggled then
+                animate(toggleFrame, {BackgroundColor3 = currentTheme.Accent}, ANIMATION_TIME)
+                animate(knob, {Position = UDim2.new(0, 27, 0.5, -10)}, ANIMATION_TIME, BOUNCE_EASING)
+            else
+                animate(toggleFrame, {BackgroundColor3 = currentTheme.Border}, ANIMATION_TIME)
+                animate(knob, {Position = UDim2.new(0, 3, 0.5, -10)}, ANIMATION_TIME, BOUNCE_EASING)
+            end
+        else
+            if isToggled then
+                toggleFrame.BackgroundColor3 = currentTheme.Accent
+                knob.Position = UDim2.new(0, 27, 0.5, -10)
+            else
+                toggleFrame.BackgroundColor3 = currentTheme.Border
+                knob.Position = UDim2.new(0, 3, 0.5, -10)
+            end
+        end
+    end
+    
+    updateToggle(isToggled, false)
+    
+    button.MouseButton1Click:Connect(function()
+        updateToggle(not isToggled, true)
+        if config.Callback then
+            config.Callback(isToggled)
+        end
+    end)
+    
+    return {
+        Element = container,
+        SetValue = function(value)
+            updateToggle(value, true)
+        end,
+        GetValue = function()
+            return isToggled
+        end,
+        SetText = function(text)
+            label.Text = text
+        end,
+        Destroy = function()
+            container:Destroy()
+        end
+    }
+end
+
+function ComponentFactory.createSlider(config)
+    local container = ComponentFactory.createBaseElement(config.Name or "Slider", UDim2.new(1, 0, 0, 70))
+    container.BackgroundTransparency = 1
+    
+    local padding = createPadding(16)
+    padding.Parent = container
+    
+    local label = Instance.new("TextLabel")
+    label.Name = "Label"
+    label.Size = UDim2.new(1, -60, 0, 20)
+    label.Position = UDim2.new(0, 0, 0, 0)
+    label.BackgroundTransparency = 1
+    label.Text = config.Text or "Slider"
+    label.TextColor3 = currentTheme.Text
+    label.TextSize = 14
+    label.Font = Enum.Font.Gotham
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Parent = container
+    
+    local valueLabel = Instance.new("TextLabel")
+    valueLabel.Name = "Value"
+    valueLabel.Size = UDim2.new(0, 60, 0, 20)
+    valueLabel.Position = UDim2.new(1, -60, 0, 0)
+    valueLabel.BackgroundTransparency = 1
+    valueLabel.Text = tostring(config.Default or config.Min or 0)
+    valueLabel.TextColor3 = currentTheme.Accent
+    valueLabel.TextSize = 14
+    valueLabel.Font = Enum.Font.GothamMedium
+    valueLabel.TextXAlignment = Enum.TextXAlignment.Right
+    valueLabel.Parent = container
+    
+    local track = Instance.new("Frame")
+    track.Name = "Track"
+    track.Size = UDim2.new(1, 0, 0, 6)
+    track.Position = UDim2.new(0, 0, 1, -20)
+    track.BackgroundColor3 = currentTheme.Border
+    track.BorderSizePixel = 0
+    track.Parent = container
+    
+    local trackCorner = createCorner(3)
+    trackCorner.Parent = track
+    
+    local fill = Instance.new("Frame")
+    fill.Name = "Fill"
+    fill.Size = UDim2.new(0, 0, 1, 0)
+    fill.BackgroundColor3 = currentTheme.Accent
+    fill.BorderSizePixel = 0
+    fill.Parent = track
+    
+    local fillCorner = createCorner(3)
+    fillCorner.Parent = fill
+    
+    local thumb = Instance.new("Frame")
+    thumb.Name = "Thumb"
+    thumb.Size = UDim2.new(0, 18, 0, 18)
+    thumb.Position = UDim2.new(0, -9, 0.5, -9)
+    thumb.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    thumb.BorderSizePixel = 0
+    thumb.Parent = track
+    
+    local thumbCorner = createCorner(9)
+    thumbCorner.Parent = thumb
+    
+    local thumbStroke = createStroke(currentTheme.Accent, 2)
+    thumbStroke.Parent = thumb
+    
+    local button = Instance.new("TextButton")
+    button.Size = UDim2.new(1, 0, 1, 0)
+    button.BackgroundTransparency = 1
+    button.Text = ""
+    button.Parent = track
+    
+    local min = config.Min or 0
+    local max = config.Max or 100
+    local step = config.Step or 1
+    local value = config.Default or min
+    
+    local function updateSlider(newValue, animate_transition)
+        value = math.clamp(newValue, min, max)
+        value = math.floor((value - min) / step + 0.5) * step + min
+        
+        local percentage = (value - min) / (max - min)
+        
+        if animate_transition then
+            animate(fill, {Size = UDim2.new(percentage, 0, 1, 0)}, HOVER_TIME)
+            animate(thumb, {Position = UDim2.new(percentage, -9, 0.5, -9)}, HOVER_TIME)
+        else
+            fill.Size = UDim2.new(percentage, 0, 1, 0)
+            thumb.Position = UDim2.new(percentage, -9, 0.5, -9)
+        end
+        
+        valueLabel.Text = config.Suffix and (tostring(value) .. " " .. config.Suffix) or tostring(value)
+        
+        if config.Callback then
+            config.Callback(value)
+        end
+    end
+    
+    updateSlider(value, false)
+    
+    local dragging = false
+    
+    button.MouseButton1Down:Connect(function()
+        dragging = true
+    end)
+    
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = false
+        end
+    end)
+    
+    button.MouseMoved:Connect(function()
+        if dragging then
+            local mouseX = UserInputService:GetMouseLocation().X
+            local trackX = track.AbsolutePosition.X
+            local trackWidth = track.AbsoluteSize.X
+            
+            local percentage = math.clamp((mouseX - trackX) / trackWidth, 0, 1)
+            local newValue = min + percentage * (max - min)
+            
+            updateSlider(newValue, false)
+        end
+    end)
+    
+    return {
+        Element = container,
+        SetValue = function(newValue)
+            updateSlider(newValue, true)
+        end,
+        GetValue = function()
+            return value
+        end,
+        SetText = function(text)
+            label.Text = text
+        end,
+        Destroy = function()
+            container:Destroy()
+        end
+    }
+end
+
+-- Main Library Functions
+function RadionLibrary:CreateWindow(config)
+    local windowConfig = {
+        Title = config.Title or "Radion",
+        Size = config.Size or UDim2.new(0, 500, 0, 600),
+        Theme = config.Theme or "Professional",
+        Draggable = config.Draggable ~= false,
+        CloseButton = config.CloseButton ~= false,
+        MinimizeButton = config.MinimizeButton ~= false
+    }
+    
+    -- Set theme
+    if type(windowConfig.Theme) == "string" and RadionLibrary.Themes[windowConfig.Theme] then
+        currentTheme = RadionLibrary.Themes[windowConfig.Theme]
+    elseif type(windowConfig.Theme) == "table" then
+        currentTheme = windowConfig.Theme
+    end
+    
+    -- Create main GUI
+    local gui = Instance.new("ScreenGui")
+    gui.Name = "RadionUI"
+    gui.ResetOnSpawn = false
+    gui.Parent = CoreGui
+    
+    local main = Instance.new("Frame")
+    main.Name = "Main"
+    main.Size = windowConfig.Size
+    main.Position = UDim2.new(0.5, 0, 0.5, 0)
+    main.AnchorPoint = Vector2.new(0.5, 0.5)
+    main.BackgroundColor3 = currentTheme.Primary
+    main.BorderSizePixel = 0
+    main.Parent = gui
+    
+    local mainCorner = createCorner(12)
+    mainCorner.Parent = main
+    
+    local mainStroke = createStroke(currentTheme.Border, 1)
+    mainStroke.Parent = main
+    
+    -- Title bar
+    local titleBar = Instance.new("Frame")
+    titleBar.Name = "TitleBar"
+    titleBar.Size = UDim2.new(1, 0, 0, 50)
+    titleBar.BackgroundColor3 = currentTheme.Secondary
+    titleBar.BorderSizePixel = 0
+    titleBar.Parent = main
+    
+    local titleCorner = createCorner(12)
+    titleCorner.Parent = titleBar
+    
+    local titleStroke = createStroke(currentTheme.Border, 1)
+    titleStroke.Parent = titleBar
+    
+    -- Fix bottom corners
+    local cornerFix = Instance.new("Frame")
+    cornerFix.Size = UDim2.new(1, 0, 0, 12)
+    cornerFix.Position = UDim2.new(0, 0, 1, -12)
+    cornerFix.BackgroundColor3 = currentTheme.Secondary
+    cornerFix.BorderSizePixel = 0
+    cornerFix.Parent = titleBar
+    
+    local title = Instance.new("TextLabel")
+    title.Name = "Title"
+    title.Size = UDim2.new(1, -100, 1, 0)
+    title.Position = UDim2.new(0, 20, 0, 0)
+    title.BackgroundTransparency = 1
+    title.Text = windowConfig.Title
+    title.TextColor3 = currentTheme.Text
+    title.TextSize = 16
+    title.Font = Enum.Font.GothamMedium
+    title.TextXAlignment = Enum.TextXAlignment.Left
+    title.Parent = titleBar
+    
+    -- Content area
+    local content = Instance.new("ScrollingFrame")
+    content.Name = "Content"
+    content.Size = UDim2.new(1, 0, 1, -50)
+    content.Position = UDim2.new(0, 0, 0, 50)
+    content.BackgroundTransparency = 1
+    content.BorderSizePixel = 0
+    content.ScrollBarThickness = 4
+    content.ScrollBarImageColor3 = currentTheme.Border
+    content.CanvasSize = UDim2.new(0, 0, 0, 0)
+    content.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    content.Parent = main
+    
+    local contentPadding = createPadding(20)
+    contentPadding.Parent = content
+    
+    local layout = Instance.new("UIListLayout")
+    layout.SortOrder = Enum.SortOrder.LayoutOrder
+    layout.Padding = UDim.new(0, 10)
+    layout.Parent = content
+    
+    -- Make draggable
+    if windowConfig.Draggable then
+        local dragging = false
+        local dragStart = nil
+        local startPos = nil
+        
+        titleBar.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                dragging = true
+                dragStart = input.Position
+                startPos = main.Position
+            end
+        end)
+        
+        UserInputService.InputChanged:Connect(function(input)
+            if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+                local delta = input.Position - dragStart
+                main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+            end
+        end)
+        
+        UserInputService.InputEnded:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                dragging = false
+            end
+        end)
+    end
+    
+    -- Animate window in
+    main.Size = UDim2.new(0, 0, 0, 0)
+    animate(main, {Size = windowConfig.Size}, 0.5, BOUNCE_EASING)
+    
+    local Window = {}
+    
+    function Window:AddButton(config)
+        local button = ComponentFactory.createButton(config)
+        button.Element.Parent = content
+        return button
+    end
+    
+    function Window:AddToggle(config)
+        local toggle = ComponentFactory.createToggle(config)
+        toggle.Element.Parent = content
+        return toggle
+    end
+    
+    function Window:AddSlider(config)
+        local slider = ComponentFactory.createSlider(config)
+        slider.Element.Parent = content
+        return slider
+    end
+    
+    function Window:AddLabel(text, config)
+        config = config or {}
+        local label = Instance.new("TextLabel")
+        label.Size = UDim2.new(1, 0, 0, config.Height or 30)
+        label.BackgroundTransparency = 1
+        label.Text = text
+        label.TextColor3 = config.Color or currentTheme.TextSecondary
+        label.TextSize = config.TextSize or 14
+        label.Font = config.Font or Enum.Font.Gotham
+        label.TextXAlignment = config.Alignment or Enum.TextXAlignment.Left
+        label.TextWrapped = true
+        label.Parent = content
+        
+        return {
+            Element = label,
+            SetText = function(newText)
+                label.Text = newText
+            end,
+            SetColor = function(color)
+                label.TextColor3 = color
+            end,
+            Destroy = function()
+                label:Destroy()
+            end
+        }
+    end
+    
+    function Window:AddSeparator()
+        local separator = Instance.new("Frame")
+        separator.Size = UDim2.new(1, 0, 0, 1)
+        separator.BackgroundColor3 = currentTheme.Border
+        separator.BorderSizePixel = 0
+        separator.Parent = content
+        
+        return {
+            Element = separator,
+            Destroy = function()
+                separator:Destroy()
+            end
+        }
+    end
+    
+    function Window:SetTheme(theme)
+        if type(theme) == "string" and RadionLibrary.Themes[theme] then
+            currentTheme = RadionLibrary.Themes[theme]
+        elseif type(theme) == "table" then
+            currentTheme = theme
+        end
+        
+        -- Update all colors
+        animate(main, {BackgroundColor3 = currentTheme.Primary}, ANIMATION_TIME)
+        animate(titleBar, {BackgroundColor3 = currentTheme.Secondary}, ANIMATION_TIME)
+        animate(cornerFix, {BackgroundColor3 = currentTheme.Secondary}, ANIMATION_TIME)
+        animate(title, {TextColor3 = currentTheme.Text}, ANIMATION_TIME)
+        
+        mainStroke.Color = currentTheme.Border
+        titleStroke.Color = currentTheme.Border
+        content.ScrollBarImageColor3 = currentTheme.Border
+    end
+    
+    function Window:SetTitle(newTitle)
+        title.Text = newTitle
+    end
+    
+    function Window:SetSize(newSize)
+        animate(main, {Size = newSize}, ANIMATION_TIME)
+    end
+    
+    function Window:Toggle()
+        if main.Visible then
+            AnimationSystem.fadeOut(main, ANIMATION_TIME, function()
+                main.Visible = false
+            end)
+        else
+            main.Visible = true
+            AnimationSystem.fadeIn(main, ANIMATION_TIME)
+        end
+    end
+    
+    function Window:Destroy()
+        animate(main, {Size = UDim2.new(0, 0, 0, 0)}, 0.5, BOUNCE_EASING)
+        task.wait(0.5)
+        gui:Destroy()
+    end
+    
+    return Window
+end
+
+-- Notification System
+function RadionLibrary:Notify(config)
+    local notification = Instance.new("Frame")
+    notification.Size = UDim2.new(0, 300, 0, 80)
+    notification.Position = UDim2.new(1, -320, 1, -100)
+    notification.BackgroundColor3 = currentTheme.Secondary
+    notification.BorderSizePixel = 0
+    
+    local notifGui = Instance.new("ScreenGui")
+    notifGui.Name = "RadionNotification"
+    notifGui.Parent = CoreGui
+    
+    notification.Parent = notifGui
+    
+    local corner = createCorner(8)
+    corner.Parent = notification
+    
+    local stroke = createStroke(currentTheme.Border)
+    stroke.Parent = notification
+    
+    local padding = createPadding(16)
+    padding.Parent = notification
+    
+    local title = Instance.new("TextLabel")
+    title.Size = UDim2.new(1, 0, 0, 20)
+    title.BackgroundTransparency = 1
+    title.Text = config.Title or "Notification"
+    title.TextColor3 = currentTheme.Text
+    title.TextSize = 14
+    title.Font = Enum.Font.GothamMedium
+    title.TextXAlignment = Enum.TextXAlignment.Left
+    title.Parent = notification
+    
+    local desc = Instance.new("TextLabel")
+    desc.Size = UDim2.new(1, 0, 1, -25)
+    desc.Position = UDim2.new(0, 0, 0, 25)
+    desc.BackgroundTransparency = 1
+    desc.Text = config.Description or ""
+    desc.TextColor3 = currentTheme.TextSecondary
+    desc.TextSize = 12
+    desc.Font = Enum.Font.Gotham
+    desc.TextXAlignment = Enum.TextXAlignment.Left
+    desc.TextWrapped = true
+    desc.Parent = notification
+    
+    -- Color based on type
+    if config.Type then
+        if config.Type == "Success" then
+            stroke.Color = currentTheme.Success
+        elseif config.Type == "Warning" then
+            stroke.Color = currentTheme.Warning
+        elseif config.Type == "Error" then
+            stroke.Color = currentTheme.Error
+        end
+    end
+    
+    -- Animate in
+    notification.Position = UDim2.new(1, 0, 1, -100)
+    animate(notification, {Position = UDim2.new(1, -320, 1, -100)}, 0.5, BOUNCE_EASING)
+    
+    -- Auto dismiss
+    local duration = config.Duration or 3
+    task.spawn(function()
+        task.wait(duration)
+        animate(notification, {Position = UDim2.new(1, 0, 1, -100)}, 0.3)
+        task.wait(0.3)
+        notifGui:Destroy()
+    end)
+    
+    -- Click to dismiss
+    local button = Instance.new("TextButton")
+    button.Size = UDim2.new(1, 0, 1, 0)
+    button.BackgroundTransparency = 1
+    button.Text = ""
+    button.Parent = notification
+    
+    button.MouseButton1Click:Connect(function()
+        animate(notification, {Position = UDim2.new(1, 0, 1, -100)}, 0.3)
+        task.wait(0.3)
+        notifGui:Destroy()
+    end)
+end
+
+-- Advanced Components
+function RadionLibrary:CreateDropdown(config)
+    local container = ComponentFactory.createBaseElement(config.Name or "Dropdown", UDim2.new(1, 0, 0, 50))
+    container.BackgroundTransparency = 1
+    
+    local padding = createPadding(16)
+    padding.Parent = container
+    
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, -20, 0, 20)
+    label.BackgroundTransparency = 1
+    label.Text = config.Text or "Dropdown"
+    label.TextColor3 = currentTheme.Text
+    label.TextSize = 14
+    label.Font = Enum.Font.Gotham
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Parent = container
+    
+    local dropdown = Instance.new("Frame")
+    dropdown.Size = UDim2.new(1, 0, 0, 35)
+    dropdown.Position = UDim2.new(0, 0, 1, -35)
+    dropdown.BackgroundColor3 = currentTheme.Secondary
+    dropdown.BorderSizePixel = 0
+    dropdown.Parent = container
+    
+    local dropCorner = createCorner(6)
+    dropCorner.Parent = dropdown
+    
+    local dropStroke = createStroke()
+    dropStroke.Parent = dropdown
+    
+    local selected = Instance.new("TextLabel")
+    selected.Size = UDim2.new(1, -30, 1, 0)
+    selected.Position = UDim2.new(0, 12, 0, 0)
+    selected.BackgroundTransparency = 1
+    selected.Text = config.Options and config.Options[1] or "Select..."
+    selected.TextColor3 = currentTheme.Text
+    selected.TextSize = 13
+    selected.Font = Enum.Font.Gotham
+    selected.TextXAlignment = Enum.TextXAlignment.Left
+    selected.Parent = dropdown
+    
+    local arrow = Instance.new("TextLabel")
+    arrow.Size = UDim2.new(0, 20, 1, 0)
+    arrow.Position = UDim2.new(1, -20, 0, 0)
+    arrow.BackgroundTransparency = 1
+    arrow.Text = "▼"
+    arrow.TextColor3 = currentTheme.TextSecondary
+    arrow.TextSize = 12
+    arrow.Font = Enum.Font.Gotham
+    arrow.TextXAlignment = Enum.TextXAlignment.Center
+    arrow.Parent = dropdown
+    
+    local options = Instance.new("Frame")
+    options.Size = UDim2.new(1, 0, 0, 0)
+    options.Position = UDim2.new(0, 0, 1, 2)
+    options.BackgroundColor3 = currentTheme.Secondary
+    options.BorderSizePixel = 0
+    options.Visible = false
+    options.ZIndex = 10
+    options.Parent = dropdown
+    
+    local optCorner = createCorner(6)
+    optCorner.Parent = options
+    
+    local optStroke = createStroke()
+    optStroke.Parent = options
+    
+    local optLayout = Instance.new("UIListLayout")
+    optLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    optLayout.Parent = options
+    
+    local isOpen = false
+    local currentValue = config.Default or (config.Options and config.Options[1])
+    
+    if currentValue then
+        selected.Text = currentValue
+    end
+    
+    local function createOption(text, index)
+        local option = Instance.new("TextButton")
+        option.Size = UDim2.new(1, 0, 0, 30)
+        option.BackgroundColor3 = currentTheme.Secondary
+        option.BorderSizePixel = 0
+        option.Text = text
+        option.TextColor3 = currentTheme.Text
+        option.TextSize = 13
+        option.Font = Enum.Font.Gotham
+        option.AutoButtonColor = false
+        option.Parent = options
+        
+        AnimationSystem.hover(option, currentTheme.Hover, currentTheme.Secondary)
+        
+        option.MouseButton1Click:Connect(function()
+            currentValue = text
+            selected.Text = text
+            
+            -- Close dropdown
+            isOpen = false
+            animate(arrow, {Rotation = 0}, ANIMATION_TIME)
+            animate(options, {Size = UDim2.new(1, 0, 0, 0)}, ANIMATION_TIME)
+            
+            task.spawn(function()
+                task.wait(ANIMATION_TIME)
+                options.Visible = false
+            end)
+            
+            if config.Callback then
+                config.Callback(text, index)
+            end
+        end)
+        
+        return option
+    end
+    
+    if config.Options then
+        for i, option in ipairs(config.Options) do
+            createOption(option, i)
+        end
+    end
+    
+    local button = Instance.new("TextButton")
+    button.Size = UDim2.new(1, 0, 1, 0)
+    button.BackgroundTransparency = 1
+    button.Text = ""
+    button.Parent = dropdown
+    
+    button.MouseButton1Click:Connect(function()
+        isOpen = not isOpen
+        
+        if isOpen then
+            options.Visible = true
+            local optionCount = #(config.Options or {})
+            local height = math.min(optionCount * 30, 150)
+            
+            animate(arrow, {Rotation = 180}, ANIMATION_TIME)
+            animate(options, {Size = UDim2.new(1, 0, 0, height)}, ANIMATION_TIME, BOUNCE_EASING)
+        else
+            animate(arrow, {Rotation = 0}, ANIMATION_TIME)
+            animate(options, {Size = UDim2.new(1, 0, 0, 0)}, ANIMATION_TIME)
+            
+            task.spawn(function()
+                task.wait(ANIMATION_TIME)
+                options.Visible = false
+            end)
+        end
+    end)
+    
+    return {
+        Element = container,
+        SetValue = function(value)
+            if config.Options and table.find(config.Options, value) then
+                currentValue = value
+                selected.Text = value
+            end
+        end,
+        GetValue = function()
+            return currentValue
+        end,
+        AddOption = function(option)
+            if not config.Options then
+                config.Options = {}
+            end
+            table.insert(config.Options, option)
+            createOption(option, #config.Options)
+        end,
+        RemoveOption = function(option)
+            if config.Options then
+                local index = table.find(config.Options, option)
+                if index then
+                    table.remove(config.Options, index)
+                    -- Rebuild options
+                    for _, child in pairs(options:GetChildren()) do
+                        if child:IsA("TextButton") then
+                            child:Destroy()
+                        end
+                    end
+                    for i, opt in ipairs(config.Options) do
+                        createOption(opt, i)
+                    end
+                end
+            end
+        end,
+        Destroy = function()
+            container:Destroy()
+        end
+    }
+end
+
+function RadionLibrary:CreateTextBox(config)
+    local container = ComponentFactory.createBaseElement(config.Name or "TextBox", UDim2.new(1, 0, 0, 70))
+    container.BackgroundTransparency = 1
+    
+    local padding = createPadding(16)
+    padding.Parent = container
+    
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, 0, 0, 20)
+    label.BackgroundTransparency = 1
+    label.Text = config.Text or "Text Input"
+    label.TextColor3 = currentTheme.Text
+    label.TextSize = 14
+    label.Font = Enum.Font.Gotham
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Parent = container
+    
+    local textBox = Instance.new("TextBox")
+    textBox.Size = UDim2.new(1, 0, 0, 35)
+    textBox.Position = UDim2.new(0, 0, 1, -35)
+    textBox.BackgroundColor3 = currentTheme.Secondary
+    textBox.BorderSizePixel = 0
+    textBox.Text = config.Default or ""
+    textBox.PlaceholderText = config.Placeholder or "Enter text..."
+    textBox.TextColor3 = currentTheme.Text
+    textBox.PlaceholderColor3 = currentTheme.TextSecondary
+    textBox.TextSize = 13
+    textBox.Font = Enum.Font.Gotham
+    textBox.TextXAlignment = Enum.TextXAlignment.Left
+    textBox.ClearButtonSize = UDim2.new(0, 0, 0, 0)
+    textBox.Parent = container
+    
+    local textCorner = createCorner(6)
+    textCorner.Parent = textBox
+    
+    local textStroke = createStroke()
+    textStroke.Parent = textBox
+    
+    local textPadding = createPadding(12)
+    textPadding.Parent = textBox
+    
+    -- Focus animations
+    textBox.Focused:Connect(function()
+        animate(textStroke, {Color = currentTheme.Accent}, HOVER_TIME)
+        animate(textStroke, {Thickness = 2}, HOVER_TIME)
+    end)
+    
+    textBox.FocusLost:Connect(function()
+        animate(textStroke, {Color = currentTheme.Border}, HOVER_TIME)
+        animate(textStroke, {Thickness = 1}, HOVER_TIME)
+        
+        if config.Callback then
+            config.Callback(textBox.Text)
+        end
+    end)
+    
+    return {
+        Element = container,
+        SetText = function(text)
+            textBox.Text = text
+        end,
+        GetText = function()
+            return textBox.Text
+        end,
+        SetPlaceholder = function(placeholder)
+            textBox.PlaceholderText = placeholder
+        end,
+        Clear = function()
+            textBox.Text = ""
+        end,
+        Focus = function()
+            textBox:CaptureFocus()
+        end,
+        Destroy = function()
+            container:Destroy()
+        end
+    }
+end
+
+-- Configuration Save/Load System
+RadionLibrary.Config = {}
+
+function RadionLibrary.Config:Save(fileName, data)
+    if not writefile then
+        warn("Radion: File writing not supported in this environment")
+        return false
+    end
+    
+    local success, result = pcall(function()
+        local json = HttpService:JSONEncode(data)
+        writefile(fileName .. ".json", json)
+    end)
+    
+    if success then
+        RadionLibrary:Notify({
+            Title = "Configuration Saved",
+            Description = "Settings saved to " .. fileName .. ".json",
+            Type = "Success"
+        })
+        return true
+    else
+        RadionLibrary:Notify({
+            Title = "Save Failed",
+            Description = "Could not save configuration: " .. tostring(result),
+            Type = "Error"
+        })
+        return false
+    end
+end
+
+function RadionLibrary.Config:Load(fileName)
+    if not readfile or not isfile then
+        warn("Radion: File reading not supported in this environment")
+        return nil
+    end
+    
+    local filePath = fileName .. ".json"
+    
+    if not isfile(filePath) then
+        return nil
+    end
+    
+    local success, result = pcall(function()
+        local content = readfile(filePath)
+        return HttpService:JSONDecode(content)
+    end)
+    
+    if success then
+        RadionLibrary:Notify({
+            Title = "Configuration Loaded",
+            Description = "Settings loaded from " .. fileName .. ".json",
+            Type = "Success"
+        })
+        return result
+    else
+        RadionLibrary:Notify({
+            Title = "Load Failed",
+            Description = "Could not load configuration: " .. tostring(result),
+            Type = "Error"
+        })
+        return nil
+    end
+end
+
+-- Utility Functions for Easy Setup
+function RadionLibrary:CreateQuickWindow(title)
+    return self:CreateWindow({
+        Title = title or "Radion UI",
+        Size = UDim2.new(0, 400, 0, 500),
+        Theme = "Professional"
+    })
+end
+
+function RadionLibrary:SetGlobalTheme(theme)
+    if type(theme) == "string" and self.Themes[theme] then
+        currentTheme = self.Themes[theme]
+    elseif type(theme) == "table" then
+        currentTheme = theme
+    end
+end
+
+-- Example Usage and Documentation
+--[[
+EXAMPLE USAGE:
+
+-- Create a window
+local window = RadionLibrary:CreateWindow({
+    Title = "My Application",
+    Size = UDim2.new(0, 500, 0, 600),
+    Theme = "Professional"
+})
+
+-- Add a button
+local button = window:AddButton({
+    Text = "Click Me!",
+    Callback = function()
+        print("Button clicked!")
+    end
+})
+
+-- Add a toggle
+local toggle = window:AddToggle({
+    Text = "Enable Feature",
+    Default = false,
+    Callback = function(value)
+        print("Toggle:", value)
+    end
+})
+
+-- Add a slider
+local slider = window:AddSlider({
+    Text = "Volume",
+    Min = 0,
+    Max = 100,
+    Step = 1,
+    Default = 50,
+    Suffix = "%",
+    Callback = function(value)
+        print("Volume:", value)
+    end
+})
+
+-- Add a dropdown
+local dropdown = RadionLibrary:CreateDropdown({
+    Text = "Select Option",
+    Options = {"Option 1", "Option 2", "Option 3"},
+    Default = "Option 1",
+    Callback = function(selected, index)
+        print("Selected:", selected, "at index", index)
+    end
+})
+
+-- Add a text box
+local textBox = RadionLibrary:CreateTextBox({
+    Text = "Username",
+    Placeholder = "Enter your username...",
+    Callback = function(text)
+        print("Text entered:", text)
+    end
+})
+
+-- Send notifications
+RadionLibrary:Notify({
+    Title = "Success!",
+    Description = "Operation completed successfully",
+    Type = "Success",
+    Duration = 3
+})
+
+-- Change theme dynamically
+window:SetTheme("Ocean")
+
+-- Save/Load configurations
+local config = {
+    volume = slider:GetValue(),
+    enabled = toggle:GetValue(),
+    username = textBox:GetText()
+}
+
+RadionLibrary.Config:Save("myapp_config", config)
+local loadedConfig = RadionLibrary.Config:Load("myapp_config")
+
+]]
+
+return RadionLibrary
