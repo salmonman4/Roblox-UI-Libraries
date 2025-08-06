@@ -338,23 +338,23 @@ function Library:Create(config)
        PageButton.MouseButton1Click:Connect(function()
            for _, page in pairs(GUI.Pages) do
                page.Content.Visible = false
-               page.Button.TextColor3 = GUI.Theme.SubText
+               page.NavButton.TextColor3 = GUI.Theme.SubText
                page.Indicator.Visible = false
            end
            
            PageContent.Visible = true
-           PageButton.TextColor3 = GUI.Theme.Text
+           Page.NavButton.TextColor3 = GUI.Theme.Text
            PageIndicator.Visible = true
            GUI.CurrentPage = Page
        end)
        
        Page.Content = PageContent
-       Page.Button = PageButton
+       Page.NavButton = PageButton
        Page.Indicator = PageIndicator
        
        if #GUI.Pages == 0 then
            PageContent.Visible = true
-           PageButton.TextColor3 = GUI.Theme.Text
+           Page.NavButton.TextColor3 = GUI.Theme.Text
            PageIndicator.Visible = true
            GUI.CurrentPage = Page
        end
