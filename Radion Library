@@ -416,7 +416,7 @@ function Library:Create(config)
                CreateTween(Button, {BackgroundColor3 = GUI.Theme.Primary}, 0.2):Play()
            end)
            
-           return {Frame = ButtonFrame, Button = Button, Label = ButtonLabel}
+           return {Frame = ButtonFrame, ButtonInstance = Button, Label = ButtonLabel}
        end
        
        function Page:Toggle(options)
