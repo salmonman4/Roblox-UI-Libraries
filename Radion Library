@@ -1,5 +1,5 @@
 local Library = {}
-Library.Version = "1.0.1"
+Library.Version = "1.0.2"
 
 local Game = game
 local HttpService = Game:GetService("HttpService")
@@ -57,9 +57,9 @@ Library.Settings = {
 		Info = Color3.fromRGB(52, 152, 219),
 	},
 	Font = {
-		Main = Font.fromEnum(Enum.Font.GothamSemibold),
-		Bold = Font.fromEnum(Enum.Font.GothamBold),
-		Light = Font.fromEnum(Enum.Font.Gotham)
+		Main = { Object = Font.fromEnum(Enum.Font.GothamSemibold), Enum = Enum.Font.GothamSemibold },
+		Bold = { Object = Font.fromEnum(Enum.Font.GothamBold), Enum = Enum.Font.GothamBold },
+		Light = { Object = Font.fromEnum(Enum.Font.Gotham), Enum = Enum.Font.Gotham }
 	},
 	Rounding = 8,
 	Size = {
@@ -73,8 +73,8 @@ local function Tween(instance, properties)
 	return TweenService:Create(instance, tweenInfo, properties)
 end
 
-local function GetTextSize(text, font, size)
-	return TextService:GetTextSize(text, size, font, Vector2.new(1000, 1000))
+local function GetTextSize(text, fontEnum, size)
+	return TextService:GetTextSize(text, size, fontEnum, Vector2.new(2000, 2000))
 end
 
 Library.Cleanup = function()
@@ -146,7 +146,7 @@ Library.Notify = function(options)
 			Name = "Title",
 			Size = UDim2.new(1, -20, 0, 20),
 			Position = UDim2.new(0, 12, 0, 8),
-			FontFace = Library.Settings.Font.Bold,
+			FontFace = Library.Settings.Font.Bold.Object,
 			Text = title,
 			TextColor3 = Library.Settings.Theme.Text,
 			TextSize = 15,
@@ -157,7 +157,7 @@ Library.Notify = function(options)
 			Name = "Text",
 			Size = UDim2.new(1, -20, 0, 20),
 			Position = UDim2.new(0, 12, 0, 28),
-			FontFace = Library.Settings.Font.Light,
+			FontFace = Library.Settings.Font.Light.Object,
 			Text = text,
 			TextColor3 = Library.Settings.Theme.MutedText,
 			TextSize = 13,
@@ -166,10 +166,6 @@ Library.Notify = function(options)
 		})
 	})
 	
-	local frameTransparency = { BackgroundTransparency = 0.05 }
-	local text1Transparency = { TextTransparency = 0 }
-	local text2Transparency = { TextTransparency = 0 }
-
 	Tween(notificationFrame, { Position = UDim2.new(0, 0, 0, 0) }):Play()
 
 	task.delay(Library.Settings.NotificationDuration, function()
@@ -281,7 +277,7 @@ function PageObject:AddButton(options)
 		Position = UDim2.fromScale(0.5, 0.5),
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Text = name,
-		FontFace = Library.Settings.Font.Main,
+		FontFace = Library.Settings.Font.Main.Object,
 		TextSize = 14,
 		TextColor3 = Library.Settings.Theme.Text,
 		BackgroundColor3 = Library.Settings.Theme.Secondary,
@@ -330,7 +326,7 @@ function PageObject:AddToggle(options)
 		Size = UDim2.new(0.8, 0, 0, 20),
 		Position = UDim2.new(0, 10, 0, 0),
 		Text = name,
-		FontFace = Library.Settings.Font.Light,
+		FontFace = Library.Settings.Font.Light.Object,
 		TextSize = 14,
 		TextColor3 = Library.Settings.Theme.Text,
 		BackgroundTransparency = 1,
@@ -418,7 +414,7 @@ function PageObject:AddSlider(options)
 		Size = UDim2.new(0.5, 0, 0, 20),
 		Position = UDim2.new(0, 10, 0, 0),
 		Text = name,
-		FontFace = Library.Settings.Font.Light,
+		FontFace = Library.Settings.Font.Light.Object,
 		TextSize = 14,
 		TextColor3 = Library.Settings.Theme.Text,
 		BackgroundTransparency = 1,
@@ -431,7 +427,7 @@ function PageObject:AddSlider(options)
 		Size = UDim2.new(0.5, -10, 0, 20),
 		Position = UDim2.new(1, 0, 0, 0),
 		AnchorPoint = Vector2.new(1, 0),
-		FontFace = Library.Settings.Font.Light,
+		FontFace = Library.Settings.Font.Light.Object,
 		TextSize = 14,
 		TextColor3 = Library.Settings.Theme.MutedText,
 		BackgroundTransparency = 1,
@@ -474,7 +470,7 @@ function PageObject:AddSlider(options)
 		
 		valueLabel.Text = tostring(steppedValue) .. suffix
 		
-		local percent = (steppedValue - min) / (max - min)
+		local percent = (max - min) > 0 and (steppedValue - min) / (max - min) or 0
 		local goal = UDim2.fromScale(percent, 1)
 
 		Tween(fill, { Size = goal }):Play()
@@ -553,7 +549,7 @@ function PageObject:AddDropdown(options)
 		Size = UDim2.new(1, -20, 0, 20),
 		Position = UDim2.new(0, 10, 0, 0),
 		Text = name,
-		FontFace = Library.Settings.Font.Light,
+		FontFace = Library.Settings.Font.Light.Object,
 		TextSize = 14,
 		TextColor3 = Library.Settings.Theme.Text,
 		BackgroundTransparency = 1,
@@ -576,7 +572,7 @@ function PageObject:AddDropdown(options)
 		Name = "ValueLabel",
 		Size = UDim2.new(1, -30, 1, 0),
 		Position = UDim2.new(0, 10, 0, 0),
-		FontFace = Library.Settings.Font.Light,
+		FontFace = Library.Settings.Font.Light.Object,
 		Text = "Select...",
 		TextSize = 14,
 		TextColor3 = Library.Settings.Theme.MutedText,
@@ -590,7 +586,7 @@ function PageObject:AddDropdown(options)
 		Size = UDim2.new(0, 20, 1, 0),
 		Position = UDim2.new(1, -10, 0, 0),
 		AnchorPoint = Vector2.new(1, 0),
-		FontFace = Library.Settings.Font.Bold,
+		FontFace = Library.Settings.Font.Bold.Object,
 		Text = "▼",
 		TextSize = 14,
 		TextColor3 = Library.Settings.Theme.MutedText,
@@ -629,8 +625,8 @@ function PageObject:AddDropdown(options)
 	local function UpdateValueLabel()
 		if multiSelect then
 			local count = 0
-			for _ in pairs(DropdownObject.Value) do
-				count = count + 1
+			for _, v in pairs(DropdownObject.Value) do
+                if v then count = count + 1 end
 			end
 			valueLabel.Text = count .. " Selected"
 			valueLabel.TextColor3 = Library.Settings.Theme.Text
@@ -654,7 +650,7 @@ function PageObject:AddDropdown(options)
 
 		if not state then
 			task.wait(Library.Settings.AnimationSpeed)
-			menu.Visible = false
+			if not expanded then menu.Visible = false end
 		end
 	end
 	
@@ -672,7 +668,7 @@ function PageObject:AddDropdown(options)
 				Size = UDim2.new(1, -8, 0, 30),
 				BackgroundColor3 = Library.Settings.Theme.Secondary,
 				Text = itemStr,
-				FontFace = Library.Settings.Font.Light,
+				FontFace = Library.Settings.Font.Light.Object,
 				TextSize = 14,
 				TextColor3 = Library.Settings.Theme.Text,
 				Parent = menu,
@@ -685,7 +681,7 @@ function PageObject:AddDropdown(options)
 					Size = UDim2.new(0, 20, 1, 0),
 					Position = UDim2.new(1, -10, 0.5, 0),
 					AnchorPoint = Vector2.new(1, 0.5),
-					FontFace = Library.Settings.Font.Bold,
+					FontFace = Library.Settings.Font.Bold.Object,
 					Text = "✓",
 					TextSize = 16,
 					TextColor3 = Library.Settings.Theme.Accent,
@@ -768,9 +764,9 @@ end
 function WindowObject:AddPage(name)
 	local pageButton = Create("TextButton", {
 		Name = "PageButton",
-		Size = UDim2.new(0, GetTextSize(name, Library.Settings.Font.Main, 14).X + 20, 1, 0),
+		Size = UDim2.new(0, GetTextSize(name, Library.Settings.Font.Main.Enum, 14).X + 20, 1, 0),
 		Text = name,
-		FontFace = Library.Settings.Font.Main,
+		FontFace = Library.Settings.Font.Main.Object,
 		TextSize = 14,
 		TextColor3 = Library.Settings.Theme.MutedText,
 		BackgroundColor3 = Library.Settings.Theme.Primary,
@@ -896,7 +892,7 @@ function Library:CreateWindow(options)
 		Name = "TitleLabel",
 		Size = UDim2.new(1, -50, 1, 0),
 		Position = UDim2.new(0, 15, 0, 0),
-		FontFace = Library.Settings.Font.Bold,
+		FontFace = Library.Settings.Font.Bold.Object,
 		Text = title,
 		TextSize = 16,
 		TextColor3 = Library.Settings.Theme.Text,
@@ -911,7 +907,7 @@ function Library:CreateWindow(options)
 		Position = UDim2.fromScale(1, 0),
 		AnchorPoint = Vector2.new(1, 0),
 		Text = "X",
-		FontFace = Library.Settings.Font.Bold,
+		FontFace = Library.Settings.Font.Bold.Object,
 		TextSize = 16,
 		TextColor3 = Library.Settings.Theme.MutedText,
 		BackgroundTransparency = 1,
