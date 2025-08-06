@@ -910,7 +910,7 @@ function Library:Create(config)
        CloseButton.TextColor3 = GUI.Theme.SubText
        
        for _, page in pairs(GUI.Pages) do
-           page.Button.TextColor3 = page.Content.Visible and GUI.Theme.Text or GUI.Theme.SubText
+           page.NavButton.TextColor3 = page.Content.Visible and GUI.Theme.Text or GUI.Theme.SubText
            page.Indicator.BackgroundColor3 = GUI.Theme.Primary
        end
    end
