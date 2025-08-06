@@ -1,5 +1,5 @@
 local Library = {}
-Library.Version = "1.0.0"
+Library.Version = "1.0.1"
 
 local Game = game
 local HttpService = Game:GetService("HttpService")
@@ -74,7 +74,7 @@ local function Tween(instance, properties)
 end
 
 local function GetTextSize(text, font, size)
-	return TextService:GetTextSize(text, size, font.Font, Vector2.new(1000, 1000))
+	return TextService:GetTextSize(text, size, font, Vector2.new(1000, 1000))
 end
 
 Library.Cleanup = function()
@@ -146,7 +146,7 @@ Library.Notify = function(options)
 			Name = "Title",
 			Size = UDim2.new(1, -20, 0, 20),
 			Position = UDim2.new(0, 12, 0, 8),
-			Font = Library.Settings.Font.Bold.Font,
+			FontFace = Library.Settings.Font.Bold,
 			Text = title,
 			TextColor3 = Library.Settings.Theme.Text,
 			TextSize = 15,
@@ -157,7 +157,7 @@ Library.Notify = function(options)
 			Name = "Text",
 			Size = UDim2.new(1, -20, 0, 20),
 			Position = UDim2.new(0, 12, 0, 28),
-			Font = Library.Settings.Font.Light.Font,
+			FontFace = Library.Settings.Font.Light,
 			Text = text,
 			TextColor3 = Library.Settings.Theme.MutedText,
 			TextSize = 13,
@@ -281,7 +281,7 @@ function PageObject:AddButton(options)
 		Position = UDim2.fromScale(0.5, 0.5),
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Text = name,
-		Font = Library.Settings.Font.Main.Font,
+		FontFace = Library.Settings.Font.Main,
 		TextSize = 14,
 		TextColor3 = Library.Settings.Theme.Text,
 		BackgroundColor3 = Library.Settings.Theme.Secondary,
@@ -330,7 +330,7 @@ function PageObject:AddToggle(options)
 		Size = UDim2.new(0.8, 0, 0, 20),
 		Position = UDim2.new(0, 10, 0, 0),
 		Text = name,
-		Font = Library.Settings.Font.Light.Font,
+		FontFace = Library.Settings.Font.Light,
 		TextSize = 14,
 		TextColor3 = Library.Settings.Theme.Text,
 		BackgroundTransparency = 1,
@@ -418,7 +418,7 @@ function PageObject:AddSlider(options)
 		Size = UDim2.new(0.5, 0, 0, 20),
 		Position = UDim2.new(0, 10, 0, 0),
 		Text = name,
-		Font = Library.Settings.Font.Light.Font,
+		FontFace = Library.Settings.Font.Light,
 		TextSize = 14,
 		TextColor3 = Library.Settings.Theme.Text,
 		BackgroundTransparency = 1,
@@ -431,7 +431,7 @@ function PageObject:AddSlider(options)
 		Size = UDim2.new(0.5, -10, 0, 20),
 		Position = UDim2.new(1, 0, 0, 0),
 		AnchorPoint = Vector2.new(1, 0),
-		Font = Library.Settings.Font.Light.Font,
+		FontFace = Library.Settings.Font.Light,
 		TextSize = 14,
 		TextColor3 = Library.Settings.Theme.MutedText,
 		BackgroundTransparency = 1,
@@ -553,7 +553,7 @@ function PageObject:AddDropdown(options)
 		Size = UDim2.new(1, -20, 0, 20),
 		Position = UDim2.new(0, 10, 0, 0),
 		Text = name,
-		Font = Library.Settings.Font.Light.Font,
+		FontFace = Library.Settings.Font.Light,
 		TextSize = 14,
 		TextColor3 = Library.Settings.Theme.Text,
 		BackgroundTransparency = 1,
@@ -576,7 +576,7 @@ function PageObject:AddDropdown(options)
 		Name = "ValueLabel",
 		Size = UDim2.new(1, -30, 1, 0),
 		Position = UDim2.new(0, 10, 0, 0),
-		Font = Library.Settings.Font.Light.Font,
+		FontFace = Library.Settings.Font.Light,
 		Text = "Select...",
 		TextSize = 14,
 		TextColor3 = Library.Settings.Theme.MutedText,
@@ -590,7 +590,7 @@ function PageObject:AddDropdown(options)
 		Size = UDim2.new(0, 20, 1, 0),
 		Position = UDim2.new(1, -10, 0, 0),
 		AnchorPoint = Vector2.new(1, 0),
-		Font = Library.Settings.Font.Bold.Font,
+		FontFace = Library.Settings.Font.Bold,
 		Text = "▼",
 		TextSize = 14,
 		TextColor3 = Library.Settings.Theme.MutedText,
@@ -672,7 +672,7 @@ function PageObject:AddDropdown(options)
 				Size = UDim2.new(1, -8, 0, 30),
 				BackgroundColor3 = Library.Settings.Theme.Secondary,
 				Text = itemStr,
-				Font = Library.Settings.Font.Light.Font,
+				FontFace = Library.Settings.Font.Light,
 				TextSize = 14,
 				TextColor3 = Library.Settings.Theme.Text,
 				Parent = menu,
@@ -685,7 +685,7 @@ function PageObject:AddDropdown(options)
 					Size = UDim2.new(0, 20, 1, 0),
 					Position = UDim2.new(1, -10, 0.5, 0),
 					AnchorPoint = Vector2.new(1, 0.5),
-					Font = Library.Settings.Font.Bold.Font,
+					FontFace = Library.Settings.Font.Bold,
 					Text = "✓",
 					TextSize = 16,
 					TextColor3 = Library.Settings.Theme.Accent,
@@ -770,7 +770,7 @@ function WindowObject:AddPage(name)
 		Name = "PageButton",
 		Size = UDim2.new(0, GetTextSize(name, Library.Settings.Font.Main, 14).X + 20, 1, 0),
 		Text = name,
-		Font = Library.Settings.Font.Main.Font,
+		FontFace = Library.Settings.Font.Main,
 		TextSize = 14,
 		TextColor3 = Library.Settings.Theme.MutedText,
 		BackgroundColor3 = Library.Settings.Theme.Primary,
@@ -896,7 +896,7 @@ function Library:CreateWindow(options)
 		Name = "TitleLabel",
 		Size = UDim2.new(1, -50, 1, 0),
 		Position = UDim2.new(0, 15, 0, 0),
-		Font = Library.Settings.Font.Bold.Font,
+		FontFace = Library.Settings.Font.Bold,
 		Text = title,
 		TextSize = 16,
 		TextColor3 = Library.Settings.Theme.Text,
@@ -911,7 +911,7 @@ function Library:CreateWindow(options)
 		Position = UDim2.fromScale(1, 0),
 		AnchorPoint = Vector2.new(1, 0),
 		Text = "X",
-		Font = Library.Settings.Font.Bold.Font,
+		FontFace = Library.Settings.Font.Bold,
 		TextSize = 16,
 		TextColor3 = Library.Settings.Theme.MutedText,
 		BackgroundTransparency = 1,
