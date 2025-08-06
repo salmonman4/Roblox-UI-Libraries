@@ -1,5 +1,5 @@
 local Library = {}
-Library.Version = "1.0.2"
+Library.Version = "1.0.3"
 
 local Game = game
 local HttpService = Game:GetService("HttpService")
@@ -847,12 +847,13 @@ function Library:CreateWindow(options)
 		Name = title,
 		DisplayOrder = 999,
 		ResetOnSpawn = false,
-		Parent = CoreGui
+		Parent = CoreGui,
+        Enabled = false
 	})
 	
 	local main = Create("Frame", {
 		Name = "Main",
-		Size = UDim2.fromScale(1, 1),
+		Size = UDim2.fromScale(0, 0),
 		Position = UDim2.fromScale(0.5, 0.5),
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		BackgroundColor3 = Library.Settings.Theme.Background,
@@ -946,7 +947,7 @@ function Library:CreateWindow(options)
 		PageContainer = pageContainer,
 		Pages = {},
 		Elements = {},
-		Visible = true,
+		Visible = false,
 	}, WindowObject)
 	
 	header.InputBegan:Connect(function(input)
@@ -983,7 +984,6 @@ function Library:CreateWindow(options)
 		end
 	end)
 
-	main.Size = UDim2.fromScale(0,0)
 	Window:ToggleVisibility()
 	Window:LoadConfig()
 
