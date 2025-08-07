@@ -8,6 +8,26 @@ local function Tween(obj, props, time, style, dir)
     return TweenService:Create(obj, TweenInfo.new(time or 0.25, style or Enum.EasingStyle.Quart, dir or Enum.EasingDirection.Out), props)
 end
 
+local function Draggable(frame, handle)
+    local dragging, dragStart, startPos
+    handle.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            dragStart = input.Position
+            startPos = frame.Position
+        end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            local delta = input.Position - dragStart
+            frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
+    end)
+end
+
 local Library = {}
 Library.__index = Library
 
@@ -53,9 +73,7 @@ function Library:Create(config)
     self.Main.AnchorPoint = Vector2.new(0.5,0.5)
     self.Main.ClipsDescendants = true
     self.Main.Parent = gui
-
-    local mainCorner = Instance.new("UICorner", self.Main)
-    mainCorner.CornerRadius = UDim.new(0,12)
+    Instance.new("UICorner", self.Main).CornerRadius = UDim.new(0,12)
 
     local topbar = Instance.new("Frame")
     topbar.Size = UDim2.new(1,0,0,45)
@@ -112,23 +130,7 @@ function Library:Create(config)
     notifList.VerticalAlignment = Enum.VerticalAlignment.Bottom
     notifList.Padding = UDim.new(0,8)
 
-    local dragging, dragStart, startPos
-    topbar.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = true
-            dragStart = input.Position
-            startPos = self.Main.Position
-        end
-    end)
-    UserInputService.InputChanged:Connect(function(input)
-        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-            local delta = input.Position - dragStart
-            self.Main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset+delta.X, startPos.Y.Scale, startPos.Y.Offset+delta.Y)
-        end
-    end)
-    UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging=false end
-    end)
+    Draggable(self.Main, topbar)
 
     function self:Toggle()
         self.Toggled = not self.Toggled
@@ -235,6 +237,37 @@ function Library:Create(config)
         page.Underline=underline
         page.Content=content
         table.insert(self.Pages,page)
+
+        function page:Button(opt)
+            opt = opt or {}
+            local frame = Instance.new("Frame")
+            frame.Size = UDim2.new(1,0,0,45)
+            frame.BackgroundColor3 = self.Theme.Element
+            frame.Parent = content
+            Instance.new("UICorner", frame).CornerRadius = UDim.new(0,8)
+            local lbl = Instance.new("TextLabel", frame)
+            lbl.Size = UDim2.new(0.6,0,1,0)
+            lbl.Position = UDim2.new(0,15,0,0)
+            lbl.BackgroundTransparency = 1
+            lbl.Font = Enum.Font.Gotham
+            lbl.Text = opt.Name or "Button"
+            lbl.TextSize = 14
+            lbl.TextColor3 = self.Theme.Text
+            lbl.TextXAlignment = Enum.TextXAlignment.Left
+            local btn = Instance.new("TextButton", frame)
+            btn.Size = UDim2.new(0,100,0,30)
+            btn.Position = UDim2.new(1,-115,0.5,-15)
+            btn.BackgroundColor3 = self.Theme.Primary
+            btn.Font = Enum.Font.Gotham
+            btn.TextSize = 13
+            btn.TextColor3 = self.Theme.Text
+            btn.Text = opt.Text or "Click"
+            Instance.new("UICorner", btn).CornerRadius = UDim.new(0,6)
+            btn.MouseButton1Click:Connect(function()
+                if opt.Callback then opt.Callback() end
+            end)
+        end
+
         return page
     end
 
