@@ -1,1110 +1,1183 @@
-local Library = {}
-Library.__index = Library
+-- Modern UI Library for Roblox
+-- Minimalistic Black & White Theme
 
-local TweenService = game:GetService("TweenService")
-local UserInputService = game:GetService("UserInputService")
-local RunService = game:GetService("RunService")
-local HttpService = game:GetService("HttpService")
-local Players = game:GetService("Players")
+local UILibrary = {}
+UILibrary.__index = UILibrary
 
-local function CreateTween(obj, info, props)
-    return TweenService:Create(obj, TweenInfo.new(info.Time or 0.3, info.Style or Enum.EasingStyle.Quart, info.Direction or Enum.EasingDirection.Out), props)
-end
+-- Theme Configuration
+local Theme = {
+    Background = Color3.fromRGB(28, 28, 30),
+    Secondary = Color3.fromRGB(38, 38, 40),
+    Tertiary = Color3.fromRGB(48, 48, 50),
+    Text = Color3.fromRGB(255, 255, 255),
+    TextDim = Color3.fromRGB(160, 160, 160),
+    Accent = Color3.fromRGB(100, 200, 255),
+    Border = Color3.fromRGB(60, 60, 62),
+    Shadow = Color3.fromRGB(0, 0, 0)
+}
 
-local function CreateInstance(class, props)
-    local obj = Instance.new(class)
-    for k, v in pairs(props) do
-        obj[k] = v
+-- Utility Functions
+local function CreateInstance(class, properties)
+    local instance = Instance.new(class)
+    for prop, value in pairs(properties) do
+        instance[prop] = value
     end
-    return obj
+    return instance
 end
 
-function Library:Create(config)
-    config = config or {}
-    local self = setmetatable({}, Library)
-    
-    self.Theme = config.Theme or {
-        Background = Color3.fromRGB(18, 18, 22),
-        Secondary = Color3.fromRGB(24, 24, 30),
-        Tertiary = Color3.fromRGB(32, 32, 40),
-        Accent = Color3.fromRGB(88, 101, 242),
-        Text = Color3.fromRGB(240, 240, 245),
-        TextDim = Color3.fromRGB(160, 160, 170),
-        Border = Color3.fromRGB(40, 40, 50),
-        Success = Color3.fromRGB(67, 181, 129),
-        Warning = Color3.fromRGB(250, 179, 127),
-        Error = Color3.fromRGB(240, 71, 71)
-    }
-    
-    self.Settings = {
-        ToggleKey = config.ToggleKey or Enum.KeyCode.K,
-        SaveConfig = config.SaveConfig ~= false,
-        ConfigName = config.ConfigName or "UIConfig",
-        NotificationDuration = config.NotificationDuration or 3,
-        AnimationSpeed = config.AnimationSpeed or 0.3
-    }
-    
-    self.Notifications = {}
+local function TweenService()
+    return game:GetService("TweenService")
+end
+
+local function CreateTween(object, properties, duration)
+    local tween = TweenService():Create(
+        object,
+        TweenInfo.new(duration or 0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out),
+        properties
+    )
+    return tween
+end
+
+-- Initialize Library
+function UILibrary:Create()
+    local self = setmetatable({}, UILibrary)
     self.Windows = {}
-    self.Toggles = {}
-    self.CurrentPage = nil
-    self.Debounce = {}
-    
-    self:Initialize()
+    self.ScreenGui = CreateInstance("ScreenGui", {
+        Name = "ModernUI",
+        Parent = game:GetService("CoreGui"),
+        ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+        ResetOnSpawn = false
+    })
     return self
 end
 
-function Library:Initialize()
-    self.ScreenGui = CreateInstance("ScreenGui", {
-        Name = HttpService:GenerateGUID(false),
-        ResetOnSpawn = false,
-        ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
-        Parent = game:GetService("CoreGui")
-    })
+-- Window Class
+local Window = {}
+Window.__index = Window
+
+function UILibrary:CreateWindow(config)
+    config = config or {}
+    local window = setmetatable({}, Window)
     
-    self.Container = CreateInstance("Frame", {
-        Name = "Container",
-        Size = UDim2.new(0, 620, 0, 460),
-        Position = UDim2.new(0.5, -310, 0.5, -230),
-        BackgroundColor3 = self.Theme.Background,
-        BorderSizePixel = 0,
+    -- Main Frame
+    window.Frame = CreateInstance("Frame", {
+        Name = config.Name or "Window",
         Parent = self.ScreenGui,
+        BackgroundColor3 = Theme.Background,
+        BorderSizePixel = 0,
+        Position = UDim2.new(0.5, -250, 0.5, -200),
+        Size = config.Size or UDim2.new(0, 500, 0, 400),
         ClipsDescendants = true
     })
     
+    -- Rounded Corners
     CreateInstance("UICorner", {
         CornerRadius = UDim.new(0, 12),
-        Parent = self.Container
+        Parent = window.Frame
     })
     
-    CreateInstance("UIStroke", {
-        Color = self.Theme.Border,
-        Thickness = 1,
-        Transparency = 0.5,
-        Parent = self.Container
+    -- Drop Shadow
+    local Shadow = CreateInstance("ImageLabel", {
+        Name = "Shadow",
+        Parent = window.Frame,
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0.5, 0, 0.5, 4),
+        Size = UDim2.new(1, 30, 1, 30),
+        ZIndex = -1,
+        Image = "rbxassetid://6015897843",
+        ImageColor3 = Theme.Shadow,
+        ImageTransparency = 0.5,
+        ScaleType = Enum.ScaleType.Slice,
+        SliceCenter = Rect.new(49, 49, 450, 450)
     })
     
-    self.Header = CreateInstance("Frame", {
-        Name = "Header",
-        Size = UDim2.new(1, 0, 0, 48),
-        BackgroundColor3 = self.Theme.Secondary,
+    -- Title Bar
+    window.TitleBar = CreateInstance("Frame", {
+        Name = "TitleBar",
+        Parent = window.Frame,
+        BackgroundColor3 = Theme.Background,
         BorderSizePixel = 0,
-        Parent = self.Container
+        Size = UDim2.new(1, 0, 0, 40)
     })
     
-    CreateInstance("UICorner", {
-        CornerRadius = UDim.new(0, 12),
-        Parent = self.Header
-    })
-    
-    CreateInstance("Frame", {
-        Name = "HeaderCover",
-        Size = UDim2.new(1, 0, 0, 12),
-        Position = UDim2.new(0, 0, 1, -12),
-        BackgroundColor3 = self.Theme.Secondary,
-        BorderSizePixel = 0,
-        Parent = self.Header
-    })
-    
-    self.Title = CreateInstance("TextLabel", {
+    -- Title Text
+    window.Title = CreateInstance("TextLabel", {
         Name = "Title",
-        Size = UDim2.new(0, 200, 1, 0),
-        Position = UDim2.new(0, 16, 0, 0),
+        Parent = window.TitleBar,
         BackgroundTransparency = 1,
+        Position = UDim2.new(0, 15, 0, 0),
+        Size = UDim2.new(0.7, -15, 1, 0),
         Font = Enum.Font.Gotham,
-        Text = "Interface",
-        TextColor3 = self.Theme.Text,
+        Text = config.Name or "Window",
+        TextColor3 = Theme.Text,
+        TextScaled = false,
         TextSize = 16,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        Parent = self.Header
+        TextXAlignment = Enum.TextXAlignment.Left
     })
     
-    self.CloseButton = CreateInstance("TextButton", {
-        Name = "Close",
-        Size = UDim2.new(0, 32, 0, 32),
-        Position = UDim2.new(1, -40, 0.5, -16),
-        BackgroundColor3 = self.Theme.Tertiary,
-        BorderSizePixel = 0,
-        Font = Enum.Font.Gotham,
-        Text = "×",
-        TextColor3 = self.Theme.TextDim,
-        TextSize = 24,
-        Parent = self.Header
-    })
-    
-    CreateInstance("UICorner", {
-        CornerRadius = UDim.new(0, 8),
-        Parent = self.CloseButton
-    })
-    
-    self.TabContainer = CreateInstance("Frame", {
-        Name = "TabContainer",
-        Size = UDim2.new(1, -32, 0, 36),
-        Position = UDim2.new(0, 16, 0, 56),
+    -- Control Buttons Container
+    local Controls = CreateInstance("Frame", {
+        Name = "Controls",
+        Parent = window.TitleBar,
+        AnchorPoint = Vector2.new(1, 0.5),
         BackgroundTransparency = 1,
-        Parent = self.Container
+        Position = UDim2.new(1, -10, 0.5, 0),
+        Size = UDim2.new(0, 60, 0, 20)
     })
     
     CreateInstance("UIListLayout", {
+        Parent = Controls,
+        FillDirection = Enum.FillDirection.Horizontal,
+        HorizontalAlignment = Enum.HorizontalAlignment.Right,
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        Padding = UDim.new(0, 8)
+    })
+    
+    -- Close Button
+    local CloseBtn = CreateInstance("ImageButton", {
+        Name = "Close",
+        Parent = Controls,
+        BackgroundTransparency = 1,
+        Size = UDim2.new(0, 16, 0, 16),
+        Image = "rbxassetid://7072725342",
+        ImageColor3 = Theme.TextDim
+    })
+    
+    CloseBtn.MouseEnter:Connect(function()
+        CreateTween(CloseBtn, {ImageColor3 = Theme.Text}, 0.2):Play()
+    end)
+    
+    CloseBtn.MouseLeave:Connect(function()
+        CreateTween(CloseBtn, {ImageColor3 = Theme.TextDim}, 0.2):Play()
+    end)
+    
+    CloseBtn.MouseButton1Click:Connect(function()
+        window:Destroy()
+    end)
+    
+    -- Tab Container
+    window.TabContainer = CreateInstance("Frame", {
+        Name = "TabContainer",
+        Parent = window.Frame,
+        BackgroundColor3 = Theme.Secondary,
+        BorderSizePixel = 0,
+        Position = UDim2.new(0, 0, 0, 40),
+        Size = UDim2.new(1, 0, 0, 35)
+    })
+    
+    window.TabButtons = CreateInstance("Frame", {
+        Name = "TabButtons",
+        Parent = window.TabContainer,
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 1, 0)
+    })
+    
+    CreateInstance("UIListLayout", {
+        Parent = window.TabButtons,
         FillDirection = Enum.FillDirection.Horizontal,
         SortOrder = Enum.SortOrder.LayoutOrder,
-        Padding = UDim.new(0, 8),
-        Parent = self.TabContainer
+        Padding = UDim.new(0, 0)
     })
     
-    self.PageContainer = CreateInstance("Frame", {
-        Name = "PageContainer",
-        Size = UDim2.new(1, -32, 1, -108),
-        Position = UDim2.new(0, 16, 0, 100),
+    -- Content Container
+    window.ContentContainer = CreateInstance("Frame", {
+        Name = "ContentContainer",
+        Parent = window.Frame,
         BackgroundTransparency = 1,
-        Parent = self.Container
+        Position = UDim2.new(0, 0, 0, 75),
+        Size = UDim2.new(1, 0, 1, -75)
     })
     
-    self.NotificationContainer = CreateInstance("Frame", {
-        Name = "NotificationContainer",
-        Size = UDim2.new(0, 320, 1, 0),
-        Position = UDim2.new(1, -340, 0, 0),
-        BackgroundTransparency = 1,
-        Parent = self.ScreenGui
-    })
+    -- Make Draggable
+    local dragging, dragInput, dragStart, startPos
     
-    CreateInstance("UIListLayout", {
-        SortOrder = Enum.SortOrder.LayoutOrder,
-        Padding = UDim.new(0, 8),
-        VerticalAlignment = Enum.VerticalAlignment.Bottom,
-        Parent = self.NotificationContainer
-    })
-    
-    CreateInstance("UIPadding", {
-        PaddingBottom = UDim.new(0, 20),
-        PaddingRight = UDim.new(0, 20),
-        Parent = self.NotificationContainer
-    })
-    
-    self:SetupDragging()
-    self:SetupToggle()
-    self:SetupCloseButton()
-    
-    if self.Settings.SaveConfig then
-        self:LoadConfig()
-    end
-end
-
-function Library:SetupDragging()
-    local dragging, dragStart, startPos
-    
-    self.Header.InputBegan:Connect(function(input)
+    window.TitleBar.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
             dragging = true
             dragStart = input.Position
-            startPos = self.Container.Position
+            startPos = window.Frame.Position
         end
     end)
     
-    UserInputService.InputChanged:Connect(function(input)
+    game:GetService("UserInputService").InputChanged:Connect(function(input)
         if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
             local delta = input.Position - dragStart
-            self.Container.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+            window.Frame.Position = UDim2.new(
+                startPos.X.Scale,
+                startPos.X.Offset + delta.X,
+                startPos.Y.Scale,
+                startPos.Y.Offset + delta.Y
+            )
         end
     end)
     
-    UserInputService.InputEnded:Connect(function(input)
+    game:GetService("UserInputService").InputEnded:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
             dragging = false
         end
     end)
-end
-
-function Library:SetupToggle()
-    UserInputService.InputBegan:Connect(function(input, processed)
-        if not processed and input.KeyCode == self.Settings.ToggleKey then
-            self:Toggle()
-        end
-    end)
-end
-
-function Library:SetupCloseButton()
-    self.CloseButton.MouseEnter:Connect(function()
-        CreateTween(self.CloseButton, {Time = 0.2}, {BackgroundColor3 = self.Theme.Error}):Play()
-        CreateTween(self.CloseButton, {Time = 0.2}, {TextColor3 = self.Theme.Text}):Play()
-    end)
     
-    self.CloseButton.MouseLeave:Connect(function()
-        CreateTween(self.CloseButton, {Time = 0.2}, {BackgroundColor3 = self.Theme.Tertiary}):Play()
-        CreateTween(self.CloseButton, {Time = 0.2}, {TextColor3 = self.Theme.TextDim}):Play()
-    end)
-    
-    self.CloseButton.MouseButton1Click:Connect(function()
-        self:Toggle()
-    end)
-end
-
-function Library:Toggle()
-    self.Visible = not self.Visible
-    if self.Visible then
-        self.Container.Size = UDim2.new(0, 0, 0, 0)
-        self.Container.Visible = true
-        CreateTween(self.Container, {Time = 0.4, Style = Enum.EasingStyle.Back}, {Size = UDim2.new(0, 620, 0, 460)}):Play()
-    else
-        local tween = CreateTween(self.Container, {Time = 0.3}, {Size = UDim2.new(0, 620, 0, 0)})
-        tween:Play()
-        tween.Completed:Connect(function()
-            self.Container.Visible = false
-        end)
-        if self.Settings.SaveConfig then
-            self:SaveConfig()
-        end
-    end
-end
-
-function Library:CreateWindow(title)
-    local window = {}
-    window.Title = title or "Window"
     window.Tabs = {}
-    
-    self.Title.Text = window.Title
-    self.Windows[window.Title] = window
-    
-    function window:CreateTab(name, icon)
-        local tab = {}
-        tab.Name = name
-        tab.Elements = {}
-        
-        tab.Button = CreateInstance("TextButton", {
-            Name = name,
-            Size = UDim2.new(0, 100, 1, 0),
-            BackgroundColor3 = self.CurrentPage == name and Library.Theme.Accent or Library.Theme.Tertiary,
-            BorderSizePixel = 0,
-            Font = Enum.Font.Gotham,
-            Text = name,
-            TextColor3 = self.CurrentPage == name and Library.Theme.Text or Library.Theme.TextDim,
-            TextSize = 14,
-            Parent = Library.TabContainer
-        })
-        
-        CreateInstance("UICorner", {
-            CornerRadius = UDim.new(0, 8),
-            Parent = tab.Button
-        })
-        
-        tab.Page = CreateInstance("ScrollingFrame", {
-            Name = name,
-            Size = UDim2.new(1, 0, 1, 0),
-            BackgroundTransparency = 1,
-            BorderSizePixel = 0,
-            ScrollBarThickness = 4,
-            ScrollBarImageColor3 = Library.Theme.Accent,
-            Visible = false,
-            Parent = Library.PageContainer
-        })
-        
-        CreateInstance("UIListLayout", {
-            SortOrder = Enum.SortOrder.LayoutOrder,
-            Padding = UDim.new(0, 8),
-            Parent = tab.Page
-        })
-        
-        tab.Button.MouseButton1Click:Connect(function()
-            Library:SelectTab(tab)
-        end)
-        
-        tab.Button.MouseEnter:Connect(function()
-            if Library.CurrentPage ~= name then
-                CreateTween(tab.Button, {Time = 0.2}, {BackgroundColor3 = Library.Theme.Border}):Play()
-            end
-        end)
-        
-        tab.Button.MouseLeave:Connect(function()
-            if Library.CurrentPage ~= name then
-                CreateTween(tab.Button, {Time = 0.2}, {BackgroundColor3 = Library.Theme.Tertiary}):Play()
-            end
-        end)
-        
-        function tab:CreateSection(title)
-            local section = {}
-            
-            section.Container = CreateInstance("Frame", {
-                Name = title,
-                Size = UDim2.new(1, 0, 0, 40),
-                BackgroundColor3 = Library.Theme.Secondary,
-                BorderSizePixel = 0,
-                Parent = tab.Page
-            })
-            
-            CreateInstance("UICorner", {
-                CornerRadius = UDim.new(0, 8),
-                Parent = section.Container
-            })
-            
-            section.Title = CreateInstance("TextLabel", {
-                Size = UDim2.new(1, -20, 0, 30),
-                Position = UDim2.new(0, 10, 0, 5),
-                BackgroundTransparency = 1,
-                Font = Enum.Font.GothamBold,
-                Text = title,
-                TextColor3 = Library.Theme.Text,
-                TextSize = 14,
-                TextXAlignment = Enum.TextXAlignment.Left,
-                Parent = section.Container
-            })
-            
-            section.Content = CreateInstance("Frame", {
-                Size = UDim2.new(1, -20, 1, -35),
-                Position = UDim2.new(0, 10, 0, 30),
-                BackgroundTransparency = 1,
-                Parent = section.Container
-            })
-            
-            CreateInstance("UIListLayout", {
-                SortOrder = Enum.SortOrder.LayoutOrder,
-                Padding = UDim.new(0, 6),
-                Parent = section.Content
-            })
-            
-            function section:AddButton(text, callback)
-                local button = {}
-                
-                button.Container = CreateInstance("TextButton", {
-                    Size = UDim2.new(1, 0, 0, 32),
-                    BackgroundColor3 = Library.Theme.Tertiary,
-                    BorderSizePixel = 0,
-                    Font = Enum.Font.Gotham,
-                    Text = text,
-                    TextColor3 = Library.Theme.Text,
-                    TextSize = 13,
-                    Parent = section.Content
-                })
-                
-                CreateInstance("UICorner", {
-                    CornerRadius = UDim.new(0, 6),
-                    Parent = button.Container
-                })
-                
-                button.Container.MouseEnter:Connect(function()
-                    CreateTween(button.Container, {Time = 0.2}, {BackgroundColor3 = Library.Theme.Accent}):Play()
-                end)
-                
-                button.Container.MouseLeave:Connect(function()
-                    CreateTween(button.Container, {Time = 0.2}, {BackgroundColor3 = Library.Theme.Tertiary}):Play()
-                end)
-                
-                button.Container.MouseButton1Click:Connect(function()
-                    if callback then
-                        callback()
-                    end
-                end)
-                
-                section.Container.Size = UDim2.new(1, 0, 0, section.Content.UIListLayout.AbsoluteContentSize.Y + 40)
-                section.Content.ChildAdded:Connect(function()
-                    section.Container.Size = UDim2.new(1, 0, 0, section.Content.UIListLayout.AbsoluteContentSize.Y + 40)
-                end)
-                
-                return button
-            end
-            
-            function section:AddToggle(text, default, callback)
-                local toggle = {}
-                toggle.Value = default or false
-                
-                toggle.Container = CreateInstance("Frame", {
-                    Size = UDim2.new(1, 0, 0, 32),
-                    BackgroundTransparency = 1,
-                    Parent = section.Content
-                })
-                
-                toggle.Label = CreateInstance("TextLabel", {
-                    Size = UDim2.new(1, -50, 1, 0),
-                    BackgroundTransparency = 1,
-                    Font = Enum.Font.Gotham,
-                    Text = text,
-                    TextColor3 = Library.Theme.Text,
-                    TextSize = 13,
-                    TextXAlignment = Enum.TextXAlignment.Left,
-                    Parent = toggle.Container
-                })
-                
-                toggle.Button = CreateInstance("TextButton", {
-                    Size = UDim2.new(0, 44, 0, 24),
-                    Position = UDim2.new(1, -44, 0.5, -12),
-                    BackgroundColor3 = toggle.Value and Library.Theme.Accent or Library.Theme.Tertiary,
-                    BorderSizePixel = 0,
-                    Text = "",
-                    Parent = toggle.Container
-                })
-                
-                CreateInstance("UICorner", {
-                    CornerRadius = UDim.new(0, 12),
-                    Parent = toggle.Button
-                })
-                
-                toggle.Indicator = CreateInstance("Frame", {
-                    Size = UDim2.new(0, 18, 0, 18),
-                    Position = toggle.Value and UDim2.new(1, -21, 0.5, -9) or UDim2.new(0, 3, 0.5, -9),
-                    BackgroundColor3 = Library.Theme.Text,
-                    BorderSizePixel = 0,
-                    Parent = toggle.Button
-                })
-                
-                CreateInstance("UICorner", {
-                    CornerRadius = UDim.new(0, 9),
-                    Parent = toggle.Indicator
-                })
-                
-                function toggle:Set(value)
-                    toggle.Value = value
-                    Library.Toggles[text] = value
-                    
-                    CreateTween(toggle.Button, {Time = 0.2}, {BackgroundColor3 = value and Library.Theme.Accent or Library.Theme.Tertiary}):Play()
-                    CreateTween(toggle.Indicator, {Time = 0.2}, {Position = value and UDim2.new(1, -21, 0.5, -9) or UDim2.new(0, 3, 0.5, -9)}):Play()
-                    
-                    if callback then
-                        callback(value)
-                    end
-                end
-                
-                toggle.Button.MouseButton1Click:Connect(function()
-                    toggle:Set(not toggle.Value)
-                end)
-                
-                section.Container.Size = UDim2.new(1, 0, 0, section.Content.UIListLayout.AbsoluteContentSize.Y + 40)
-                
-                return toggle
-            end
-            
-            function section:AddSlider(text, min, max, default, step, callback)
-                local slider = {}
-                slider.Value = default or min
-                slider.Min = min
-                slider.Max = max
-                slider.Step = step or 1
-                
-                slider.Container = CreateInstance("Frame", {
-                    Size = UDim2.new(1, 0, 0, 48),
-                    BackgroundTransparency = 1,
-                    Parent = section.Content
-                })
-                
-                slider.Label = CreateInstance("TextLabel", {
-                    Size = UDim2.new(1, -50, 0, 20),
-                    BackgroundTransparency = 1,
-                    Font = Enum.Font.Gotham,
-                    Text = text,
-                    TextColor3 = Library.Theme.Text,
-                    TextSize = 13,
-                    TextXAlignment = Enum.TextXAlignment.Left,
-                    Parent = slider.Container
-                })
-                
-                slider.Value = CreateInstance("TextLabel", {
-                    Size = UDim2.new(0, 40, 0, 20),
-                    Position = UDim2.new(1, -40, 0, 0),
-                    BackgroundTransparency = 1,
-                    Font = Enum.Font.Gotham,
-                    Text = tostring(slider.Value),
-                    TextColor3 = Library.Theme.TextDim,
-                    TextSize = 13,
-                    TextXAlignment = Enum.TextXAlignment.Right,
-                    Parent = slider.Container
-                })
-                
-                slider.Track = CreateInstance("Frame", {
-                    Size = UDim2.new(1, 0, 0, 6),
-                    Position = UDim2.new(0, 0, 0, 28),
-                    BackgroundColor3 = Library.Theme.Tertiary,
-                    BorderSizePixel = 0,
-                    Parent = slider.Container
-                })
-                
-                CreateInstance("UICorner", {
-                    CornerRadius = UDim.new(0, 3),
-                    Parent = slider.Track
-                })
-                
-                slider.Fill = CreateInstance("Frame", {
-                    Size = UDim2.new((slider.Value - min) / (max - min), 0, 1, 0),
-                    BackgroundColor3 = Library.Theme.Accent,
-                    BorderSizePixel = 0,
-                    Parent = slider.Track
-                })
-                
-                CreateInstance("UICorner", {
-                    CornerRadius = UDim.new(0, 3),
-                    Parent = slider.Fill
-                })
-                
-                slider.Knob = CreateInstance("Frame", {
-                    Size = UDim2.new(0, 16, 0, 16),
-                    Position = UDim2.new((slider.Value - min) / (max - min), -8, 0.5, -8),
-                    BackgroundColor3 = Library.Theme.Text,
-                    BorderSizePixel = 0,
-                    Parent = slider.Track
-                })
-                
-                CreateInstance("UICorner", {
-                    CornerRadius = UDim.new(0, 8),
-                    Parent = slider.Knob
-                })
-                
-                function slider:Set(value)
-                    value = math.clamp(value, slider.Min, slider.Max)
-                    value = math.floor(value / slider.Step + 0.5) * slider.Step
-                    slider.Value = value
-                    
-                    local percent = (value - slider.Min) / (slider.Max - slider.Min)
-                    CreateTween(slider.Fill, {Time = 0.1}, {Size = UDim2.new(percent, 0, 1, 0)}):Play()
-                    CreateTween(slider.Knob, {Time = 0.1}, {Position = UDim2.new(percent, -8, 0.5, -8)}):Play()
-                    slider.Value.Text = tostring(value)
-                    
-                    if callback then
-                        callback(value)
-                    end
-                end
-                
-                local dragging = false
-                
-                slider.Track.InputBegan:Connect(function(input)
-                    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-                        dragging = true
-                        local connection
-                        connection = RunService.RenderStepped:Connect(function()
-                            if dragging then
-                                local mouse = UserInputService:GetMouseLocation()
-                                local percent = math.clamp((mouse.X - slider.Track.AbsolutePosition.X) / slider.Track.AbsoluteSize.X, 0, 1)
-                                local value = slider.Min + (slider.Max - slider.Min) * percent
-                                slider:Set(value)
-                            else
-                                connection:Disconnect()
-                            end
-                        end)
-                    end
-                end)
-                
-                UserInputService.InputEnded:Connect(function(input)
-                    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-                        dragging = false
-                    end
-                end)
-                
-                section.Container.Size = UDim2.new(1, 0, 0, section.Content.UIListLayout.AbsoluteContentSize.Y + 40)
-                
-                return slider
-            end
-            
-            function section:AddDropdown(text, options, default, callback, multiselect)
-                local dropdown = {}
-                dropdown.Options = options or {}
-                dropdown.Value = multiselect and (default or {}) or default
-                dropdown.MultiSelect = multiselect or false
-                dropdown.Open = false
-                
-                dropdown.Container = CreateInstance("Frame", {
-                    Size = UDim2.new(1, 0, 0, 32),
-                    BackgroundTransparency = 1,
-                    Parent = section.Content
-                })
-                
-                dropdown.Button = CreateInstance("TextButton", {
-                    Size = UDim2.new(1, 0, 1, 0),
-                    BackgroundColor3 = Library.Theme.Tertiary,
-                    BorderSizePixel = 0,
-                    Font = Enum.Font.Gotham,
-                    Text = "",
-                    Parent = dropdown.Container
-                })
-                
-                CreateInstance("UICorner", {
-                    CornerRadius = UDim.new(0, 6),
-                    Parent = dropdown.Button
-                })
-                
-                dropdown.Label = CreateInstance("TextLabel", {
-                    Size = UDim2.new(1, -30, 1, 0),
-                    Position = UDim2.new(0, 10, 0, 0),
-                    BackgroundTransparency = 1,
-                    Font = Enum.Font.Gotham,
-                    Text = text,
-                    TextColor3 = Library.Theme.Text,
-                    TextSize = 13,
-                    TextXAlignment = Enum.TextXAlignment.Left,
-                    Parent = dropdown.Button
-                })
-                
-                dropdown.Arrow = CreateInstance("TextLabel", {
-                    Size = UDim2.new(0, 20, 1, 0),
-                    Position = UDim2.new(1, -25, 0, 0),
-                    BackgroundTransparency = 1,
-                    Font = Enum.Font.Gotham,
-                    Text = "▼",
-                    TextColor3 = Library.Theme.TextDim,
-                    TextSize = 10,
-                    Parent = dropdown.Button
-                })
-                
-                dropdown.OptionContainer = CreateInstance("Frame", {
-                    Size = UDim2.new(1, 0, 0, 0),
-                    Position = UDim2.new(0, 0, 1, 4),
-                    BackgroundColor3 = Library.Theme.Secondary,
-                    BorderSizePixel = 0,
-                    ClipsDescendants = true,
-                    Visible = false,
-                    Parent = dropdown.Container
-                })
-                
-                CreateInstance("UICorner", {
-                    CornerRadius = UDim.new(0, 6),
-                    Parent = dropdown.OptionContainer
-                })
-                
-                CreateInstance("UIStroke", {
-                    Color = Library.Theme.Border,
-                    Thickness = 1,
-                    Transparency = 0.5,
-                    Parent = dropdown.OptionContainer
-                })
-                
-                dropdown.OptionList = CreateInstance("Frame", {
-                    Size = UDim2.new(1, -8, 1, -8),
-                    Position = UDim2.new(0, 4, 0, 4),
-                    BackgroundTransparency = 1,
-                    Parent = dropdown.OptionContainer
-                })
-                
-                CreateInstance("UIListLayout", {
-                    SortOrder = Enum.SortOrder.LayoutOrder,
-                    Padding = UDim.new(0, 2),
-                    Parent = dropdown.OptionList
-                })
-                
-                function dropdown:UpdateLabel()
-                    if dropdown.MultiSelect then
-                        local selected = {}
-                        for _, v in pairs(dropdown.Value) do
-                            table.insert(selected, v)
-                        end
-                        dropdown.Label.Text = #selected > 0 and table.concat(selected, ", ") or text
-                    else
-                        dropdown.Label.Text = dropdown.Value or text
-                    end
-                end
-                
-                function dropdown:Toggle()
-                    dropdown.Open = not dropdown.Open
-                    dropdown.OptionContainer.Visible = dropdown.Open
-                    CreateTween(dropdown.Arrow, {Time = 0.2}, {Rotation = dropdown.Open and 180 or 0}):Play()
-                    CreateTween(dropdown.OptionContainer, {Time = 0.2}, {Size = UDim2.new(1, 0, 0, dropdown.Open and math.min(#dropdown.Options * 26 + 8, 156) or 0)}):Play()
-                    dropdown.Container.Size = UDim2.new(1, 0, 0, dropdown.Open and 32 + math.min(#dropdown.Options * 26 + 12, 160) or 32)
-                    section.Container.Size = UDim2.new(1, 0, 0, section.Content.UIListLayout.AbsoluteContentSize.Y + 40)
-                end
-                
-                function dropdown:Set(value)
-                    if dropdown.MultiSelect then
-                        dropdown.Value = value
-                    else
-                        dropdown.Value = value
-                    end
-                    dropdown:UpdateLabel()
-                    if callback then
-                        callback(dropdown.Value)
-                    end
-                end
-                
-                function dropdown:Refresh(options)
-                    dropdown.Options = options or {}
-                    for _, child in pairs(dropdown.OptionList:GetChildren()) do
-                        if child:IsA("TextButton") then
-                            child:Destroy()
-                        end
-                    end
-                    
-                    for _, option in pairs(dropdown.Options) do
-                        local optionButton = CreateInstance("TextButton", {
-                            Size = UDim2.new(1, 0, 0, 24),
-                            BackgroundColor3 = Library.Theme.Tertiary,
-                            BorderSizePixel = 0,
-                            Font = Enum.Font.Gotham,
-                            Text = option,
-                            TextColor3 = Library.Theme.Text,
-                            TextSize = 12,
-                            Parent = dropdown.OptionList
-                        })
-                        
-                        CreateInstance("UICorner", {
-                            CornerRadius = UDim.new(0, 4),
-                            Parent = optionButton
-                        })
-                        
-                        optionButton.MouseEnter:Connect(function()
-                            CreateTween(optionButton, {Time = 0.1}, {BackgroundColor3 = Library.Theme.Accent}):Play()
-                        end)
-                        
-                        optionButton.MouseLeave:Connect(function()
-                            CreateTween(optionButton, {Time = 0.1}, {BackgroundColor3 = Library.Theme.Tertiary}):Play()
-                        end)
-                        
-                        optionButton.MouseButton1Click:Connect(function()
-                            if dropdown.MultiSelect then
-                                if table.find(dropdown.Value, option) then
-                                    table.remove(dropdown.Value, table.find(dropdown.Value, option))
-                                else
-                                    table.insert(dropdown.Value, option)
-                                end
-                            else
-                                dropdown.Value = option
-                                dropdown:Toggle()
-                            end
-                            dropdown:UpdateLabel()
-                            if callback then
-                                callback(dropdown.Value)
-                            end
-                        end)
-                    end
-                end
-                
-                dropdown.Button.MouseButton1Click:Connect(function()
-                    dropdown:Toggle()
-                end)
-                
-                dropdown:Refresh(dropdown.Options)
-                dropdown:UpdateLabel()
-                
-                section.Container.Size = UDim2.new(1, 0, 0, section.Content.UIListLayout.AbsoluteContentSize.Y + 40)
-                
-                return dropdown
-            end
-            
-            function section:AddTextBox(text, default, callback)
-                local textbox = {}
-                textbox.Value = default or ""
-                
-                textbox.Container = CreateInstance("Frame", {
-                    Size = UDim2.new(1, 0, 0, 32),
-                    BackgroundTransparency = 1,
-                    Parent = section.Content
-                })
-                
-                textbox.Label = CreateInstance("TextLabel", {
-                    Size = UDim2.new(0.5, -5, 1, 0),
-                    BackgroundTransparency = 1,
-                    Font = Enum.Font.Gotham,
-                    Text = text,
-                    TextColor3 = Library.Theme.Text,
-                    TextSize = 13,
-                    TextXAlignment = Enum.TextXAlignment.Left,
-                    Parent = textbox.Container
-                })
-                
-                textbox.Input = CreateInstance("TextBox", {
-                    Size = UDim2.new(0.5, -5, 1, 0),
-                    Position = UDim2.new(0.5, 5, 0, 0),
-                    BackgroundColor3 = Library.Theme.Tertiary,
-                    BorderSizePixel = 0,
-                    Font = Enum.Font.Gotham,
-                    Text = default or "",
-                    TextColor3 = Library.Theme.Text,
-                    TextSize = 13,
-                    ClearTextOnFocus = false,
-                    Parent = textbox.Container
-                })
-                
-                CreateInstance("UICorner", {
-                    CornerRadius = UDim.new(0, 6),
-                    Parent = textbox.Input
-                })
-                
-                textbox.Input.FocusLost:Connect(function(enterPressed)
-                    textbox.Value = textbox.Input.Text
-                    if callback then
-                        callback(textbox.Value, enterPressed)
-                    end
-                end)
-                
-                textbox.Input.Focused:Connect(function()
-                    CreateTween(textbox.Input, {Time = 0.2}, {BackgroundColor3 = Library.Theme.Border}):Play()
-                end)
-                
-                textbox.Input.FocusLost:Connect(function()
-                    CreateTween(textbox.Input, {Time = 0.2}, {BackgroundColor3 = Library.Theme.Tertiary}):Play()
-                end)
-                
-                section.Container.Size = UDim2.new(1, 0, 0, section.Content.UIListLayout.AbsoluteContentSize.Y + 40)
-                
-                return textbox
-            end
-            
-            function section:AddKeybind(text, default, callback)
-                local keybind = {}
-                keybind.Value = default or Enum.KeyCode.Unknown
-                keybind.Binding = false
-                
-                keybind.Container = CreateInstance("Frame", {
-                    Size = UDim2.new(1, 0, 0, 32),
-                    BackgroundTransparency = 1,
-                    Parent = section.Content
-                })
-                
-                keybind.Label = CreateInstance("TextLabel", {
-                    Size = UDim2.new(1, -80, 1, 0),
-                    BackgroundTransparency = 1,
-                    Font = Enum.Font.Gotham,
-                    Text = text,
-                    TextColor3 = Library.Theme.Text,
-                    TextSize = 13,
-                    TextXAlignment = Enum.TextXAlignment.Left,
-                    Parent = keybind.Container
-                })
-                
-                keybind.Button = CreateInstance("TextButton", {
-                    Size = UDim2.new(0, 70, 0, 24),
-                    Position = UDim2.new(1, -70, 0.5, -12),
-                    BackgroundColor3 = Library.Theme.Tertiary,
-                    BorderSizePixel = 0,
-                    Font = Enum.Font.Gotham,
-                    Text = keybind.Value.Name,
-                    TextColor3 = Library.Theme.Text,
-                    TextSize = 12,
-                    Parent = keybind.Container
-                })
-                
-                CreateInstance("UICorner", {
-                    CornerRadius = UDim.new(0, 6),
-                    Parent = keybind.Button
-                })
-                
-                keybind.Button.MouseButton1Click:Connect(function()
-                    keybind.Binding = true
-                    keybind.Button.Text = "..."
-                    CreateTween(keybind.Button, {Time = 0.2}, {BackgroundColor3 = Library.Theme.Accent}):Play()
-                end)
-                
-                UserInputService.InputBegan:Connect(function(input, processed)
-                    if keybind.Binding and not processed then
-                        if input.KeyCode ~= Enum.KeyCode.Unknown then
-                            keybind.Value = input.KeyCode
-                            keybind.Button.Text = input.KeyCode.Name
-                            keybind.Binding = false
-                            CreateTween(keybind.Button, {Time = 0.2}, {BackgroundColor3 = Library.Theme.Tertiary}):Play()
-                            if callback then
-                                callback(input.KeyCode)
-                            end
-                        end
-                    elseif input.KeyCode == keybind.Value and not processed then
-                        if callback then
-                            callback(input.KeyCode)
-                        end
-                    end
-                end)
-                
-                section.Container.Size = UDim2.new(1, 0, 0, section.Content.UIListLayout.AbsoluteContentSize.Y + 40)
-                
-                return keybind
-            end
-            
-            function section:AddColorPicker(text, default, callback)
-                local colorpicker = {}
-                colorpicker.Value = default or Color3.fromRGB(255, 255, 255)
-                
-                colorpicker.Container = CreateInstance("Frame", {
-                    Size = UDim2.new(1, 0, 0, 32),
-                    BackgroundTransparency = 1,
-                    Parent = section.Content
-                })
-                
-                colorpicker.Label = CreateInstance("TextLabel", {
-                    Size = UDim2.new(1, -40, 1, 0),
-                    BackgroundTransparency = 1,
-                    Font = Enum.Font.Gotham,
-                    Text = text,
-                    TextColor3 = Library.Theme.Text,
-                    TextSize = 13,
-                    TextXAlignment = Enum.TextXAlignment.Left,
-                    Parent = colorpicker.Container
-                })
-                
-                colorpicker.Preview = CreateInstance("Frame", {
-                    Size = UDim2.new(0, 30, 0, 24),
-                    Position = UDim2.new(1, -30, 0.5, -12),
-                    BackgroundColor3 = colorpicker.Value,
-                    BorderSizePixel = 0,
-                    Parent = colorpicker.Container
-                })
-                
-                CreateInstance("UICorner", {
-                    CornerRadius = UDim.new(0, 6),
-                    Parent = colorpicker.Preview
-                })
-                
-                CreateInstance("UIStroke", {
-                    Color = Library.Theme.Border,
-                    Thickness = 1,
-                    Transparency = 0.5,
-                    Parent = colorpicker.Preview
-                })
-                
-                section.Container.Size = UDim2.new(1, 0, 0, section.Content.UIListLayout.AbsoluteContentSize.Y + 40)
-                
-                return colorpicker
-            end
-            
-            return section
-        end
-        
-        table.insert(window.Tabs, tab)
-        if #window.Tabs == 1 then
-            Library:SelectTab(tab)
-        end
-        
-        return tab
-    end
-    
+    table.insert(self.Windows, window)
     return window
 end
 
-function Library:SelectTab(tab)
-    for _, window in pairs(self.Windows) do
-        for _, t in pairs(window.Tabs) do
-            t.Page.Visible = false
-            CreateTween(t.Button, {Time = 0.2}, {BackgroundColor3 = self.Theme.Tertiary}):Play()
-            CreateTween(t.Button, {Time = 0.2}, {TextColor3 = self.Theme.TextDim}):Play()
-        end
-    end
-    
-    tab.Page.Visible = true
-    self.CurrentPage = tab.Name
-    CreateTween(tab.Button, {Time = 0.2}, {BackgroundColor3 = self.Theme.Accent}):Play()
-    CreateTween(tab.Button, {Time = 0.2}, {TextColor3 = self.Theme.Text}):Play()
-end
+-- Tab Class
+local Tab = {}
+Tab.__index = Tab
 
-function Library:Notify(config)
-    config = config or {}
-    local notification = {}
+function Window:CreateTab(name, icon)
+    local tab = setmetatable({}, Tab)
     
-    notification.Container = CreateInstance("Frame", {
-        Size = UDim2.new(1, 0, 0, 60),
-        BackgroundColor3 = self.Theme.Secondary,
-        BorderSizePixel = 0,
-        Parent = self.NotificationContainer
-    })
-    
-    CreateInstance("UICorner", {
-        CornerRadius = UDim.new(0, 8),
-        Parent = notification.Container
-    })
-    
-    notification.Accent = CreateInstance("Frame", {
-        Size = UDim2.new(0, 4, 1, 0),
-        BackgroundColor3 = config.Type == "success" and self.Theme.Success or config.Type == "warning" and self.Theme.Warning or config.Type == "error" and self.Theme.Error or self.Theme.Accent,
-        BorderSizePixel = 0,
-        Parent = notification.Container
-    })
-    
-    CreateInstance("UICorner", {
-        CornerRadius = UDim.new(0, 8),
-        Parent = notification.Accent
-    })
-    
-    notification.Title = CreateInstance("TextLabel", {
-        Size = UDim2.new(1, -20, 0, 20),
-        Position = UDim2.new(0, 15, 0, 8),
+    -- Tab Button
+    tab.Button = CreateInstance("TextButton", {
+        Name = name,
+        Parent = self.TabButtons,
         BackgroundTransparency = 1,
-        Font = Enum.Font.GothamBold,
-        Text = config.Title or "Notification",
-        TextColor3 = self.Theme.Text,
-        TextSize = 14,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        Parent = notification.Container
-    })
-    
-    notification.Content = CreateInstance("TextLabel", {
-        Size = UDim2.new(1, -20, 0, 20),
-        Position = UDim2.new(0, 15, 0, 28),
-        BackgroundTransparency = 1,
+        Size = UDim2.new(0, 120, 1, 0),
         Font = Enum.Font.Gotham,
-        Text = config.Content or "",
-        TextColor3 = self.Theme.TextDim,
-        TextSize = 12,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        Parent = notification.Container
+        Text = "  " .. name,
+        TextColor3 = Theme.TextDim,
+        TextSize = 14,
+        TextXAlignment = Enum.TextXAlignment.Center
     })
     
-    notification.Container.Size = UDim2.new(0, 0, 0, 60)
-    CreateTween(notification.Container, {Time = 0.3, Style = Enum.EasingStyle.Back}, {Size = UDim2.new(1, 0, 0, 60)}):Play()
+    -- Tab Indicator
+    tab.Indicator = CreateInstance("Frame", {
+        Name = "Indicator",
+        Parent = tab.Button,
+        BackgroundColor3 = Theme.Accent,
+        BorderSizePixel = 0,
+        Position = UDim2.new(0, 0, 1, -2),
+        Size = UDim2.new(1, 0, 0, 2),
+        Visible = false
+    })
     
-    task.wait(config.Duration or self.Settings.NotificationDuration)
+    -- Tab Page
+    tab.Page = CreateInstance("ScrollingFrame", {
+        Name = name .. "Page",
+        Parent = self.ContentContainer,
+        Active = true,
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        Position = UDim2.new(0, 0, 0, 0),
+        Size = UDim2.new(1, 0, 1, 0),
+        CanvasSize = UDim2.new(0, 0, 0, 0),
+        ScrollBarThickness = 4,
+        ScrollBarImageColor3 = Theme.Border,
+        Visible = false
+    })
     
-    local tween = CreateTween(notification.Container, {Time = 0.3}, {Size = UDim2.new(0, 0, 0, 60)})
-    tween:Play()
-    tween.Completed:Connect(function()
-        notification.Container:Destroy()
+    -- Content Layout
+    tab.Layout = CreateInstance("UIListLayout", {
+        Parent = tab.Page,
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        Padding = UDim.new(0, 8)
+    })
+    
+    CreateInstance("UIPadding", {
+        Parent = tab.Page,
+        PaddingLeft = UDim.new(0, 15),
+        PaddingRight = UDim.new(0, 15),
+        PaddingTop = UDim.new(0, 10),
+        PaddingBottom = UDim.new(0, 10)
+    })
+    
+    -- Auto-resize canvas
+    tab.Layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        tab.Page.CanvasSize = UDim2.new(0, 0, 0, tab.Layout.AbsoluteContentSize.Y + 20)
     end)
     
-    table.insert(self.Notifications, notification)
-    
-    if #self.Notifications > 5 then
-        local oldest = table.remove(self.Notifications, 1)
-        if oldest.Container then
-            oldest.Container:Destroy()
+    -- Tab Selection
+    tab.Button.MouseButton1Click:Connect(function()
+        for _, t in pairs(self.Tabs) do
+            t.Page.Visible = false
+            t.Indicator.Visible = false
+            t.Button.TextColor3 = Theme.TextDim
         end
+        tab.Page.Visible = true
+        tab.Indicator.Visible = true
+        tab.Button.TextColor3 = Theme.Text
+    end)
+    
+    -- Select first tab by default
+    if #self.Tabs == 0 then
+        tab.Page.Visible = true
+        tab.Indicator.Visible = true
+        tab.Button.TextColor3 = Theme.Text
     end
+    
+    table.insert(self.Tabs, tab)
+    return tab
 end
 
-function Library:SetTheme(theme)
-    for key, color in pairs(theme) do
-        if self.Theme[key] then
-            self.Theme[key] = color
-        end
-    end
+-- Section Class
+function Tab:CreateSection(name)
+    local section = {}
     
-    self.Container.BackgroundColor3 = self.Theme.Background
-    self.Header.BackgroundColor3 = self.Theme.Secondary
-    self.Header.HeaderCover.BackgroundColor3 = self.Theme.Secondary
-    self.Title.TextColor3 = self.Theme.Text
-    self.CloseButton.BackgroundColor3 = self.Theme.Tertiary
-    self.CloseButton.TextColor3 = self.Theme.TextDim
+    section.Frame = CreateInstance("Frame", {
+        Name = name,
+        Parent = self.Page,
+        BackgroundColor3 = Theme.Secondary,
+        BorderSizePixel = 0,
+        Size = UDim2.new(1, 0, 0, 30)
+    })
     
-    for _, window in pairs(self.Windows) do
-        for _, tab in pairs(window.Tabs) do
-            tab.Button.BackgroundColor3 = self.CurrentPage == tab.Name and self.Theme.Accent or self.Theme.Tertiary
-            tab.Button.TextColor3 = self.CurrentPage == tab.Name and self.Theme.Text or self.Theme.TextDim
-        end
-    end
+    CreateInstance("UICorner", {
+        CornerRadius = UDim.new(0, 8),
+        Parent = section.Frame
+    })
+    
+    section.Label = CreateInstance("TextLabel", {
+        Name = "SectionLabel",
+        Parent = section.Frame,
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, 12, 0, 0),
+        Size = UDim2.new(1, -24, 1, 0),
+        Font = Enum.Font.GothamBold,
+        Text = name,
+        TextColor3 = Theme.Text,
+        TextSize = 13,
+        TextXAlignment = Enum.TextXAlignment.Left
+    })
+    
+    return section
 end
 
-function Library:SaveConfig()
-    if not self.Settings.SaveConfig then return end
-    local config = {
-        Theme = self.Theme,
-        Settings = self.Settings,
-        Toggles = self.Toggles
-    }
-    writefile(self.Settings.ConfigName .. ".json", HttpService:JSONEncode(config))
+-- Toggle Element
+function Tab:CreateToggle(config)
+    config = config or {}
+    local toggle = {}
+    
+    toggle.Frame = CreateInstance("Frame", {
+        Name = config.Name or "Toggle",
+        Parent = self.Page,
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 0, 40)
+    })
+    
+    toggle.Label = CreateInstance("TextLabel", {
+        Name = "Label",
+        Parent = toggle.Frame,
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, 0, 0, 0),
+        Size = UDim2.new(0.7, 0, 1, 0),
+        Font = Enum.Font.Gotham,
+        Text = config.Name or "Toggle",
+        TextColor3 = Theme.Text,
+        TextSize = 14,
+        TextXAlignment = Enum.TextXAlignment.Left
+    })
+    
+    -- Toggle Switch
+    toggle.Switch = CreateInstance("Frame", {
+        Name = "Switch",
+        Parent = toggle.Frame,
+        AnchorPoint = Vector2.new(1, 0.5),
+        BackgroundColor3 = Theme.Border,
+        Position = UDim2.new(1, 0, 0.5, 0),
+        Size = UDim2.new(0, 44, 0, 24)
+    })
+    
+    CreateInstance("UICorner", {
+        CornerRadius = UDim.new(0, 12),
+        Parent = toggle.Switch
+    })
+    
+    toggle.Indicator = CreateInstance("Frame", {
+        Name = "Indicator",
+        Parent = toggle.Switch,
+        BackgroundColor3 = Theme.Text,
+        Position = UDim2.new(0, 2, 0, 2),
+        Size = UDim2.new(0, 20, 0, 20)
+    })
+    
+    CreateInstance("UICorner", {
+        CornerRadius = UDim.new(0, 10),
+        Parent = toggle.Indicator
+    })
+    
+    -- Toggle State
+    toggle.Enabled = config.Default or false
+    toggle.Callback = config.Callback or function() end
+    
+    local function UpdateToggle()
+        if toggle.Enabled then
+            CreateTween(toggle.Switch, {BackgroundColor3 = Theme.Accent}, 0.2):Play()
+            CreateTween(toggle.Indicator, {Position = UDim2.new(1, -22, 0, 2)}, 0.2):Play()
+        else
+            CreateTween(toggle.Switch, {BackgroundColor3 = Theme.Border}, 0.2):Play()
+            CreateTween(toggle.Indicator, {Position = UDim2.new(0, 2, 0, 2)}, 0.2):Play()
+        end
+        toggle.Callback(toggle.Enabled)
+    end
+    
+    toggle.Switch.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            toggle.Enabled = not toggle.Enabled
+            UpdateToggle()
+        end
+    end)
+    
+    UpdateToggle()
+    return toggle
 end
 
-function Library:LoadConfig()
-    if not self.Settings.SaveConfig then return end
-    if isfile(self.Settings.ConfigName .. ".json") then
-        local success, config = pcall(function()
-            return HttpService:JSONDecode(readfile(self.Settings.ConfigName .. ".json"))
+-- Dropdown Element
+function Tab:CreateDropdown(config)
+    config = config or {}
+    local dropdown = {}
+    dropdown.Open = false
+    dropdown.Selected = config.Default or "None"
+    
+    dropdown.Frame = CreateInstance("Frame", {
+        Name = config.Name or "Dropdown",
+        Parent = self.Page,
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 0, 40)
+    })
+    
+    dropdown.Label = CreateInstance("TextLabel", {
+        Name = "Label",
+        Parent = dropdown.Frame,
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, 0, 0, 0),
+        Size = UDim2.new(0.4, 0, 1, 0),
+        Font = Enum.Font.Gotham,
+        Text = config.Name or "Dropdown",
+        TextColor3 = Theme.Text,
+        TextSize = 14,
+        TextXAlignment = Enum.TextXAlignment.Left
+    })
+    
+    dropdown.Button = CreateInstance("TextButton", {
+        Name = "DropdownButton",
+        Parent = dropdown.Frame,
+        BackgroundColor3 = Theme.Tertiary,
+        Position = UDim2.new(0.45, 0, 0.5, -15),
+        Size = UDim2.new(0.55, 0, 0, 30),
+        Font = Enum.Font.Gotham,
+        Text = dropdown.Selected,
+        TextColor3 = Theme.TextDim,
+        TextSize = 13
+    })
+    
+    CreateInstance("UICorner", {
+        CornerRadius = UDim.new(0, 6),
+        Parent = dropdown.Button
+    })
+    
+    dropdown.Arrow = CreateInstance("ImageLabel", {
+        Name = "Arrow",
+        Parent = dropdown.Button,
+        AnchorPoint = Vector2.new(1, 0.5),
+        BackgroundTransparency = 1,
+        Position = UDim2.new(1, -8, 0.5, 0),
+        Size = UDim2.new(0, 12, 0, 12),
+        Image = "rbxassetid://7072706796",
+        ImageColor3 = Theme.TextDim,
+        Rotation = 0
+    })
+    
+    dropdown.List = CreateInstance("Frame", {
+        Name = "List",
+        Parent = dropdown.Frame,
+        BackgroundColor3 = Theme.Tertiary,
+        BorderSizePixel = 0,
+        Position = UDim2.new(0.45, 0, 1, 0),
+        Size = UDim2.new(0.55, 0, 0, 0),
+        ClipsDescendants = true,
+        ZIndex = 10
+    })
+    
+    CreateInstance("UICorner", {
+        CornerRadius = UDim.new(0, 6),
+        Parent = dropdown.List
+    })
+    
+    CreateInstance("UIListLayout", {
+        Parent = dropdown.List,
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        Padding = UDim.new(0, 2)
+    })
+    
+    CreateInstance("UIPadding", {
+        Parent = dropdown.List,
+        PaddingLeft = UDim.new(0, 4),
+        PaddingRight = UDim.new(0, 4),
+        PaddingTop = UDim.new(0, 4),
+        PaddingBottom = UDim.new(0, 4)
+    })
+    
+    -- Add Options
+    for _, option in ipairs(config.Options or {}) do
+        local optionBtn = CreateInstance("TextButton", {
+            Name = option,
+            Parent = dropdown.List,
+            BackgroundColor3 = Theme.Secondary,
+            BorderSizePixel = 0,
+            Size = UDim2.new(1, 0, 0, 26),
+            Font = Enum.Font.Gotham,
+            Text = option,
+            TextColor3 = Theme.TextDim,
+            TextSize = 12
+        })
+        
+        CreateInstance("UICorner", {
+            CornerRadius = UDim.new(0, 4),
+            Parent = optionBtn
+        })
+        
+        optionBtn.MouseEnter:Connect(function()
+            CreateTween(optionBtn, {BackgroundColor3 = Theme.Border}, 0.2):Play()
+            CreateTween(optionBtn, {TextColor3 = Theme.Text}, 0.2):Play()
         end)
-        if success then
-            if config.Theme then
-                self:SetTheme(config.Theme)
+        
+        optionBtn.MouseLeave:Connect(function()
+            CreateTween(optionBtn, {BackgroundColor3 = Theme.Secondary}, 0.2):Play()
+            CreateTween(optionBtn, {TextColor3 = Theme.TextDim}, 0.2):Play()
+        end)
+        
+        optionBtn.MouseButton1Click:Connect(function()
+            dropdown.Selected = option
+            dropdown.Button.Text = option
+            dropdown:Close()
+            if config.Callback then
+                config.Callback(option)
             end
-            if config.Settings then
-                for key, value in pairs(config.Settings) do
-                    self.Settings[key] = value
+        end)
+    end
+    
+    function dropdown:Open()
+        self.Open = true
+        local targetSize = UDim2.new(0.55, 0, 0, #config.Options * 28 + 8)
+        CreateTween(self.List, {Size = targetSize}, 0.3):Play()
+        CreateTween(self.Arrow, {Rotation = 180}, 0.3):Play()
+    end
+    
+    function dropdown:Close()
+        self.Open = false
+        CreateTween(self.List, {Size = UDim2.new(0.55, 0, 0, 0)}, 0.3):Play()
+        CreateTween(self.Arrow, {Rotation = 0}, 0.3):Play()
+    end
+    
+    dropdown.Button.MouseButton1Click:Connect(function()
+        if dropdown.Open then
+            dropdown:Close()
+        else
+            dropdown:Open()
+        end
+    end)
+    
+    return dropdown
+end
+
+-- Button Element
+function Tab:CreateButton(config)
+    config = config or {}
+    local button = {}
+    
+    button.Frame = CreateInstance("Frame", {
+        Name = config.Name or "Button",
+        Parent = self.Page,
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 0, 35)
+    })
+    
+    button.Button = CreateInstance("TextButton", {
+        Name = "Button",
+        Parent = button.Frame,
+        BackgroundColor3 = Theme.Tertiary,
+        BorderSizePixel = 0,
+        Size = UDim2.new(1, 0, 1, 0),
+        Font = Enum.Font.Gotham,
+        Text = config.Name or "Button",
+        TextColor3 = Theme.Text,
+        TextSize = 14
+    })
+    
+    CreateInstance("UICorner", {
+        CornerRadius = UDim.new(0, 6),
+        Parent = button.Button
+    })
+    
+    button.Button.MouseEnter:Connect(function()
+        CreateTween(button.Button, {BackgroundColor3 = Theme.Border}, 0.2):Play()
+    end)
+    
+    button.Button.MouseLeave:Connect(function()
+        CreateTween(button.Button, {BackgroundColor3 = Theme.Tertiary}, 0.2):Play()
+    end)
+    
+    button.Button.MouseButton1Click:Connect(function()
+        if config.Callback then
+            config.Callback()
+        end
+        -- Click animation
+        CreateTween(button.Button, {BackgroundColor3 = Theme.Accent}, 0.1):Play()
+        wait(0.1)
+        CreateTween(button.Button, {BackgroundColor3 = Theme.Tertiary}, 0.2):Play()
+    end)
+    
+    return button
+end
+
+-- Slider Element
+function Tab:CreateSlider(config)
+    config = config or {}
+    local slider = {}
+    slider.Value = config.Default or config.Min or 0
+    
+    slider.Frame = CreateInstance("Frame", {
+        Name = config.Name or "Slider",
+        Parent = self.Page,
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 0, 50)
+    })
+    
+    slider.Label = CreateInstance("TextLabel", {
+        Name = "Label",
+        Parent = slider.Frame,
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, 0, 0, 0),
+        Size = UDim2.new(0.6, 0, 0, 25),
+        Font = Enum.Font.Gotham,
+        Text = config.Name or "Slider",
+        TextColor3 = Theme.Text,
+        TextSize = 14,
+        TextXAlignment = Enum.TextXAlignment.Left
+    })
+    
+    slider.ValueLabel = CreateInstance("TextLabel", {
+        Name = "Value",
+        Parent = slider.Frame,
+        BackgroundTransparency = 1,
+        Position = UDim2.new(1, 0, 0, 0),
+        Size = UDim2.new(0, -50, 0, 25),
+        Font = Enum.Font.Gotham,
+        Text = tostring(slider.Value),
+        TextColor3 = Theme.TextDim,
+        TextSize = 13,
+        TextXAlignment = Enum.TextXAlignment.Right
+    })
+    
+    slider.SliderBar = CreateInstance("Frame", {
+        Name = "SliderBar",
+        Parent = slider.Frame,
+        BackgroundColor3 = Theme.Border,
+        Position = UDim2.new(0, 0, 0, 30),
+        Size = UDim2.new(1, 0, 0, 6)
+    })
+    
+    CreateInstance("UICorner", {
+        CornerRadius = UDim.new(0, 3),
+        Parent = slider.SliderBar
+    })
+    
+    slider.Fill = CreateInstance("Frame", {
+        Name = "Fill",
+        Parent = slider.SliderBar,
+        BackgroundColor3 = Theme.Accent,
+        Size = UDim2.new(0, 0, 1, 0)
+    })
+    
+    CreateInstance("UICorner", {
+        CornerRadius = UDim.new(0, 3),
+        Parent = slider.Fill
+    })
+    
+    slider.Knob = CreateInstance("Frame", {
+        Name = "Knob",
+        Parent = slider.SliderBar,
+        BackgroundColor3 = Theme.Text,
+        Position = UDim2.new(0, 0, 0.5, 0),
+        Size = UDim2.new(0, 16, 0, 16),
+        AnchorPoint = Vector2.new(0.5, 0.5)
+    })
+    
+    CreateInstance("UICorner", {
+        CornerRadius = UDim.new(0, 8),
+        Parent = slider.Knob
+    })
+    
+    -- Slider Logic
+    local dragging = false
+    local min = config.Min or 0
+    local max = config.Max or 100
+    
+    local function UpdateSlider(input)
+        local pos = math.clamp((input.Position.X - slider.SliderBar.AbsolutePosition.X) / slider.SliderBar.AbsoluteSize.X, 0, 1)
+        slider.Value = math.floor(min + (max - min) * pos)
+        slider.ValueLabel.Text = tostring(slider.Value)
+        slider.Fill.Size = UDim2.new(pos, 0, 1, 0)
+        slider.Knob.Position = UDim2.new(pos, 0, 0.5, 0)
+        
+        if config.Callback then
+            config.Callback(slider.Value)
+        end
+    end
+    
+    slider.SliderBar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            UpdateSlider(input)
+        end
+    end)
+    
+    game:GetService("UserInputService").InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            UpdateSlider(input)
+        end
+    end)
+    
+    game:GetService("UserInputService").InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = false
+        end
+    end)
+    
+    -- Set initial value
+    local initialPos = (slider.Value - min) / (max - min)
+    slider.Fill.Size = UDim2.new(initialPos, 0, 1, 0)
+    slider.Knob.Position = UDim2.new(initialPos, 0, 0.5, 0)
+    
+    return slider
+end
+
+-- Textbox Element
+function Tab:CreateTextbox(config)
+    config = config or {}
+    local textbox = {}
+    
+    textbox.Frame = CreateInstance("Frame", {
+        Name = config.Name or "Textbox",
+        Parent = self.Page,
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 0, 40)
+    })
+    
+    textbox.Label = CreateInstance("TextLabel", {
+        Name = "Label",
+        Parent = textbox.Frame,
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, 0, 0, 0),
+        Size = UDim2.new(0.4, 0, 1, 0),
+        Font = Enum.Font.Gotham,
+        Text = config.Name or "Textbox",
+        TextColor3 = Theme.Text,
+        TextSize = 14,
+        TextXAlignment = Enum.TextXAlignment.Left
+    })
+    
+    textbox.Input = CreateInstance("TextBox", {
+        Name = "Input",
+        Parent = textbox.Frame,
+        BackgroundColor3 = Theme.Tertiary,
+        Position = UDim2.new(0.45, 0, 0.5, -15),
+        Size = UDim2.new(0.55, 0, 0, 30),
+        Font = Enum.Font.Gotham,
+        PlaceholderText = config.Placeholder or "Enter text...",
+        PlaceholderColor3 = Theme.TextDim,
+        Text = config.Default or "",
+        TextColor3 = Theme.Text,
+        TextSize = 13,
+        ClearTextOnFocus = config.ClearOnFocus or false
+    })
+    
+    CreateInstance("UICorner", {
+        CornerRadius = UDim.new(0, 6),
+        Parent = textbox.Input
+    })
+    
+    CreateInstance("UIPadding", {
+        Parent = textbox.Input,
+        PaddingLeft = UDim.new(0, 8),
+        PaddingRight = UDim.new(0, 8)
+    })
+    
+    textbox.Input.FocusLost:Connect(function(enterPressed)
+        if config.Callback then
+            config.Callback(textbox.Input.Text, enterPressed)
+        end
+    end)
+    
+    return textbox
+end
+
+-- Label Element
+function Tab:CreateLabel(text)
+    local label = {}
+    
+    label.Frame = CreateInstance("Frame", {
+        Name = "Label",
+        Parent = self.Page,
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 0, 20)
+    })
+    
+    label.Text = CreateInstance("TextLabel", {
+        Name = "LabelText",
+        Parent = label.Frame,
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 1, 0),
+        Font = Enum.Font.Gotham,
+        Text = text or "Label",
+        TextColor3 = Theme.TextDim,
+        TextSize = 13,
+        TextXAlignment = Enum.TextXAlignment.Left
+    })
+    
+    function label:SetText(newText)
+        self.Text.Text = newText
+    end
+    
+    return label
+end
+
+-- Keybind Element
+function Tab:CreateKeybind(config)
+    config = config or {}
+    local keybind = {}
+    keybind.Key = config.Default or Enum.KeyCode.F
+    keybind.Listening = false
+    
+    keybind.Frame = CreateInstance("Frame", {
+        Name = config.Name or "Keybind",
+        Parent = self.Page,
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 0, 40)
+    })
+    
+    keybind.Label = CreateInstance("TextLabel", {
+        Name = "Label",
+        Parent = keybind.Frame,
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, 0, 0, 0),
+        Size = UDim2.new(0.6, 0, 1, 0),
+        Font = Enum.Font.Gotham,
+        Text = config.Name or "Keybind",
+        TextColor3 = Theme.Text,
+        TextSize = 14,
+        TextXAlignment = Enum.TextXAlignment.Left
+    })
+    
+    keybind.Button = CreateInstance("TextButton", {
+        Name = "KeybindButton",
+        Parent = keybind.Frame,
+        BackgroundColor3 = Theme.Tertiary,
+        Position = UDim2.new(1, -100, 0.5, -15),
+        Size = UDim2.new(0, 100, 0, 30),
+        Font = Enum.Font.Gotham,
+        Text = keybind.Key.Name,
+        TextColor3 = Theme.TextDim,
+        TextSize = 13
+    })
+    
+    CreateInstance("UICorner", {
+        CornerRadius = UDim.new(0, 6),
+        Parent = keybind.Button
+    })
+    
+    local UserInputService = game:GetService("UserInputService")
+    
+    keybind.Button.MouseButton1Click:Connect(function()
+        keybind.Listening = true
+        keybind.Button.Text = "..."
+        keybind.Button.TextColor3 = Theme.Accent
+    end)
+    
+    UserInputService.InputBegan:Connect(function(input, gameProcessed)
+        if keybind.Listening then
+            if input.KeyCode ~= Enum.KeyCode.Unknown then
+                keybind.Key = input.KeyCode
+                keybind.Button.Text = input.KeyCode.Name
+                keybind.Button.TextColor3 = Theme.TextDim
+                keybind.Listening = false
+                
+                if config.Callback then
+                    config.Callback(input.KeyCode)
                 end
             end
-            if config.Toggles then
-                self.Toggles = config.Toggles
+        elseif not gameProcessed and input.KeyCode == keybind.Key then
+            if config.Callback then
+                config.Callback(input.KeyCode)
             end
         end
-    end
+    end)
+    
+    return keybind
 end
 
-function Library:Destroy()
-    if self.ScreenGui then
-        self.ScreenGui:Destroy()
+-- Color Picker Element
+function Tab:CreateColorPicker(config)
+    config = config or {}
+    local colorpicker = {}
+    colorpicker.Color = config.Default or Color3.fromRGB(255, 255, 255)
+    colorpicker.Open = false
+    
+    colorpicker.Frame = CreateInstance("Frame", {
+        Name = config.Name or "ColorPicker",
+        Parent = self.Page,
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 0, 40)
+    })
+    
+    colorpicker.Label = CreateInstance("TextLabel", {
+        Name = "Label",
+        Parent = colorpicker.Frame,
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, 0, 0, 0),
+        Size = UDim2.new(0.7, 0, 1, 0),
+        Font = Enum.Font.Gotham,
+        Text = config.Name or "Color Picker",
+        TextColor3 = Theme.Text,
+        TextSize = 14,
+        TextXAlignment = Enum.TextXAlignment.Left
+    })
+    
+    colorpicker.Preview = CreateInstance("Frame", {
+        Name = "Preview",
+        Parent = colorpicker.Frame,
+        BackgroundColor3 = colorpicker.Color,
+        Position = UDim2.new(1, -35, 0.5, -12),
+        Size = UDim2.new(0, 24, 0, 24)
+    })
+    
+    CreateInstance("UICorner", {
+        CornerRadius = UDim.new(0, 4),
+        Parent = colorpicker.Preview
+    })
+    
+    CreateInstance("UIStroke", {
+        Parent = colorpicker.Preview,
+        Color = Theme.Border,
+        Thickness = 1
+    })
+    
+    -- Color Picker Window (simplified)
+    colorpicker.PickerFrame = CreateInstance("Frame", {
+        Name = "PickerFrame",
+        Parent = colorpicker.Frame,
+        BackgroundColor3 = Theme.Secondary,
+        BorderSizePixel = 0,
+        Position = UDim2.new(0.5, 0, 1, 5),
+        Size = UDim2.new(0, 200, 0, 0),
+        ClipsDescendants = true,
+        ZIndex = 20,
+        Visible = true
+    })
+    
+    CreateInstance("UICorner", {
+        CornerRadius = UDim.new(0, 8),
+        Parent = colorpicker.PickerFrame
+    })
+    
+    -- RGB Sliders Container
+    local slidersContainer = CreateInstance("Frame", {
+        Name = "Sliders",
+        Parent = colorpicker.PickerFrame,
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, 10, 0, 10),
+        Size = UDim2.new(1, -20, 1, -20)
+    })
+    
+    local function CreateRGBSlider(name, yPos, defaultValue)
+        local slider = {}
+        
+        slider.Frame = CreateInstance("Frame", {
+            Name = name,
+            Parent = slidersContainer,
+            BackgroundTransparency = 1,
+            Position = UDim2.new(0, 0, 0, yPos),
+            Size = UDim2.new(1, 0, 0, 30)
+        })
+        
+        slider.Label = CreateInstance("TextLabel", {
+            Name = "Label",
+            Parent = slider.Frame,
+            BackgroundTransparency = 1,
+            Size = UDim2.new(0, 20, 1, 0),
+            Font = Enum.Font.Gotham,
+            Text = name,
+            TextColor3 = Theme.Text,
+            TextSize = 12
+        })
+        
+        slider.Bar = CreateInstance("Frame", {
+            Name = "Bar",
+            Parent = slider.Frame,
+            BackgroundColor3 = Theme.Border,
+            Position = UDim2.new(0, 25, 0.5, -3),
+            Size = UDim2.new(1, -55, 0, 6)
+        })
+        
+        CreateInstance("UICorner", {
+            CornerRadius = UDim.new(0, 3),
+            Parent = slider.Bar
+        })
+        
+        slider.Fill = CreateInstance("Frame", {
+            Name = "Fill",
+            Parent = slider.Bar,
+            BackgroundColor3 = Theme.Accent,
+            Size = UDim2.new(defaultValue / 255, 0, 1, 0)
+        })
+        
+        CreateInstance("UICorner", {
+            CornerRadius = UDim.new(0, 3),
+            Parent = slider.Fill
+        })
+        
+        slider.Value = CreateInstance("TextLabel", {
+            Name = "Value",
+            Parent = slider.Frame,
+            BackgroundTransparency = 1,
+            Position = UDim2.new(1, -25, 0, 0),
+            Size = UDim2.new(0, 25, 1, 0),
+            Font = Enum.Font.Gotham,
+            Text = tostring(defaultValue),
+            TextColor3 = Theme.TextDim,
+            TextSize = 11
+        })
+        
+        return slider
     end
+    
+    local r = math.floor(colorpicker.Color.R * 255)
+    local g = math.floor(colorpicker.Color.G * 255)
+    local b = math.floor(colorpicker.Color.B * 255)
+    
+    local redSlider = CreateRGBSlider("R", 0, r)
+    local greenSlider = CreateRGBSlider("G", 35, g)
+    local blueSlider = CreateRGBSlider("B", 70, b)
+    
+    local function UpdateColor()
+        local r = tonumber(redSlider.Value.Text) or 0
+        local g = tonumber(greenSlider.Value.Text) or 0
+        local b = tonumber(blueSlider.Value.Text) or 0
+        colorpicker.Color = Color3.fromRGB(r, g, b)
+        colorpicker.Preview.BackgroundColor3 = colorpicker.Color
+        
+        if config.Callback then
+            config.Callback(colorpicker.Color)
+        end
+    end
+    
+    -- Slider interaction logic for each RGB slider
+    for _, slider in pairs({redSlider, greenSlider, blueSlider}) do
+        local dragging = false
+        
+        slider.Bar.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                dragging = true
+                local pos = math.clamp((input.Position.X - slider.Bar.AbsolutePosition.X) / slider.Bar.AbsoluteSize.X, 0, 1)
+                local value = math.floor(pos * 255)
+                slider.Fill.Size = UDim2.new(pos, 0, 1, 0)
+                slider.Value.Text = tostring(value)
+                UpdateColor()
+            end
+        end)
+        
+        game:GetService("UserInputService").InputChanged:Connect(function(input)
+            if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+                local pos = math.clamp((input.Position.X - slider.Bar.AbsolutePosition.X) / slider.Bar.AbsoluteSize.X, 0, 1)
+                local value = math.floor(pos * 255)
+                slider.Fill.Size = UDim2.new(pos, 0, 1, 0)
+                slider.Value.Text = tostring(value)
+                UpdateColor()
+            end
+        end)
+        
+        game:GetService("UserInputService").InputEnded:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                dragging = false
+            end
+        end)
+    end
+    
+    -- Toggle picker
+    colorpicker.Preview.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            colorpicker.Open = not colorpicker.Open
+            if colorpicker.Open then
+                CreateTween(colorpicker.PickerFrame, {Size = UDim2.new(0, 200, 0, 115)}, 0.3):Play()
+            else
+                CreateTween(colorpicker.PickerFrame, {Size = UDim2.new(0, 200, 0, 0)}, 0.3):Play()
+            end
+        end
+    end)
+    
+    return colorpicker
 end
 
-return Library
+-- Notification System
+function UILibrary:Notify(config)
+    config = config or {}
+    
+    local notification = CreateInstance("Frame", {
+        Name = "Notification",
+        Parent = self.ScreenGui,
+        BackgroundColor3 = Theme.Secondary,
+        BorderSizePixel = 0,
+        Position = UDim2.new(1, 320, 1, -80),
+        Size = UDim2.new(0, 300, 0, 60),
+        ZIndex = 100
+    })
+    
+    CreateInstance("UICorner", {
+        CornerRadius = UDim.new(0, 8),
+        Parent = notification
+    })
+    
+    CreateInstance("UIStroke", {
+        Parent = notification,
+        Color = Theme.Border,
+        Thickness = 1
+    })
+    
+    local title = CreateInstance("TextLabel", {
+        Name = "Title",
+        Parent = notification,
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, 12, 0, 8),
+        Size = UDim2.new(1, -24, 0, 18),
+        Font = Enum.Font.GothamBold,
+        Text = config.Title or "Notification",
+        TextColor3 = Theme.Text,
+        TextSize = 14,
+        TextXAlignment = Enum.TextXAlignment.Left
+    })
+    
+    local content = CreateInstance("TextLabel", {
+        Name = "Content",
+        Parent = notification,
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, 12, 0, 28),
+        Size = UDim2.new(1, -24, 0, 24),
+        Font = Enum.Font.Gotham,
+        Text = config.Content or "Notification content",
+        TextColor3 = Theme.TextDim,
+        TextSize = 12,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        TextWrapped = true
+    })
+    
+    -- Animate in
+    CreateTween(notification, {Position = UDim2.new(1, -310, 1, -80)}, 0.5):Play()
+    
+    -- Auto remove
+    wait(config.Duration or 3)
+    CreateTween(notification, {Position = UDim2.new(1, 320, 1, -80)}, 0.5):Play()
+    wait(0.5)
+    notification:Destroy()
+end
+
+-- Cleanup
+function Window:Destroy()
+    CreateTween(self.Frame, {Size = UDim2.new(0, 0, 0, 0)}, 0.3):Play()
+    wait(0.3)
+    self.Frame:Destroy()
+end
+
+return UILibrary
