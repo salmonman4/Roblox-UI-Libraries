@@ -463,36 +463,35 @@ function Window:SelectTab(tab)
         t.Page.Visible = false
         t.Indicator.Visible = false
         CreateTween(t.Button, {BackgroundColor3 = Theme.Background, BackgroundTransparency = 1}, 0.2):Play()
-        
-        local icon = t.Button:FindFirstDescendant("Icon")
+       
+        local icon = t.Button:FindFirstChild("Content"):FindFirstChild("Icon")
         if icon then
             CreateTween(icon, {ImageColor3 = Theme.TextDim}, 0.2):Play()
         end
-        
-        local text = t.Button:FindFirstDescendant("Text")
+       
+        local text = t.Button:FindFirstChild("Content"):FindFirstChild("Text")
         if text then
             CreateTween(text, {TextColor3 = Theme.TextDim}, 0.2):Play()
         end
     end
-    
+   
     -- Select new tab
     tab.Page.Visible = true
     tab.Indicator.Visible = true
     CreateTween(tab.Button, {BackgroundColor3 = Theme.Tertiary, BackgroundTransparency = 0}, 0.2):Play()
-    
-    local icon = tab.Button:FindFirstDescendant("Icon")
+   
+    local icon = tab.Button:FindFirstChild("Content"):FindFirstChild("Icon")
     if icon then
         CreateTween(icon, {ImageColor3 = Theme.Text}, 0.2):Play()
     end
-    
-    local text = tab.Button:FindFirstDescendant("Text")
+   
+    local text = tab.Button:FindFirstChild("Content"):FindFirstChild("Text")
     if text then
         CreateTween(text, {TextColor3 = Theme.Text}, 0.2):Play()
     end
-    
+   
     self.CurrentTab = tab
 end
-
 -- Collapsible Section Class
 local Section = {}
 Section.__index = Section
